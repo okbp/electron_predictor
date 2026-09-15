@@ -1,0 +1,1022 @@
+<!doctype html>
+<html lang="__REPORT_LANG__">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__REPORT_TITLE__</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --panel: #fcfcfb; --head: #f4f4f1;
+    --text: #0b0b0b; --text2: #52514e; --muted: #898781;
+    --hairline: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --hit: #16805f; --weak: #8fcdb5; --empty: rgba(11,11,11,0.05);
+    --bar: #6f9f8b; --zero: #c9c7bf; --cross: rgba(42,120,214,0.16);
+    --accent: #2a78d6; --pin: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #0d0d0d; --panel: #1a1a19; --head: #20201f;
+      --text: #ffffff; --text2: #c3c2b7; --muted: #898781;
+      --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
+      --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
+      --accent: #3987e5; --pin: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --panel: #1a1a19; --head: #20201f;
+    --text: #ffffff; --text2: #c3c2b7; --muted: #898781;
+    --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
+    --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
+    --accent: #3987e5; --pin: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; display: flex; flex-direction: column;
+    background: var(--page); color: var(--text);
+    font: 12px/1.45 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  header { padding: 8px 14px 4px; }
+  .titlerow { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+  h1 { font-size: 15px; margin: 0; font-weight: 650; }
+  .stats { color: var(--text2); font-variant-numeric: tabular-nums; }
+  button, input[type="search"] {
+    font: inherit; color: var(--text); background: var(--panel);
+    border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--axis); }
+  .pill { border-radius: 999px; padding: 1px 8px; font-size: 11px; color: var(--text2); }
+  .pill b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .pill[aria-expanded="true"] { border-color: var(--axis); color: var(--text); }
+  .pop {
+    position: absolute; top: 100%; left: 0; z-index: 30; margin-top: 4px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 6px 22px rgba(0,0,0,.16); padding: 8px 12px;
+    max-width: min(760px, calc(100vw - 40px)); max-height: min(70vh, 560px); overflow: auto;
+  }
+  .pop p { margin: 0 0 6px; line-height: 1.6; }
+  .pop .meta { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+  .pop .caveat { color: #d03b3b; font-weight: 550; margin-top: 8px; }
+  .list { border-collapse: collapse; font-size: 11.5px; }
+  .list th, .list td { border-bottom: 1px solid var(--hairline); padding: 3px 12px 3px 0; text-align: left; vertical-align: top; }
+  .list th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 2px 14px 6px; }
+  .toolbar .group { display: flex; align-items: center; gap: 4px; }
+  .seg { display: inline-flex; }
+  .seg button { border-radius: 0; }
+  .seg button:first-child { border-radius: 6px 0 0 6px; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+  .seg button[aria-pressed="true"] { background: var(--text); color: var(--panel); border-color: var(--text); }
+  input[type="search"] { width: 16em; max-width: 60vw; }
+  .hint { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .badge:not(:empty) {
+    display: inline-block; min-width: 15px; margin-left: 4px; padding: 0 4px; border-radius: 999px;
+    font-size: 10px; line-height: 14px; text-align: center; background: var(--text); color: var(--panel);
+  }
+  #export .n { color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--text2); font-size: 11px; }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; box-shadow: 0 0 0 1px var(--border) inset; }
+  .sw.hit { background: var(--hit); }
+  .sw.weak { background: var(--weak); }
+  .sw.none { background: var(--empty); }
+
+  #panel { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 0 14px 6px; }
+  #panel[hidden] { display: none; }
+  .flabel { color: var(--text2); font-weight: 600; font-size: 11px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 3px; }
+  .chips button { border-radius: 999px; padding: 1px 8px; font-size: 11px; }
+  .chips button[aria-pressed="true"] { border-color: var(--text); font-weight: 600; }
+  .chips .n { color: var(--muted); margin-left: 3px; }
+  #panel label { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; }
+
+  .stage {
+    position: relative; flex: 1 1 auto; min-height: 280px; margin: 0 14px 12px;
+    border: 1px solid var(--border); border-radius: 10px; background: var(--panel); overflow: hidden;
+  }
+  .stage canvas { position: absolute; left: 0; display: block; }
+  #head { top: 0; cursor: default; }
+  #scroller { position: absolute; left: 0; right: 0; bottom: 0; overflow: auto; }
+  #sizer { width: 1px; height: 1px; }
+
+  .tooltip {
+    position: fixed; z-index: 40; pointer-events: none; opacity: 0;
+    max-width: 440px; padding: 7px 10px; font-size: 11.5px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.14);
+  }
+  .tooltip.pinned { pointer-events: auto; border-color: var(--axis); box-shadow: 0 8px 28px rgba(0,0,0,.22); }
+  .tooltip .head { padding-right: 16px; }
+  .tooltip .head b { font-size: 12px; }
+  .tooltip .n { color: var(--muted); margin-left: 6px; font-variant-numeric: tabular-nums; }
+  .tooltip .sub { color: var(--text2); }
+  .tooltip .focus { margin-top: 5px; padding: 5px 0; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+  .tooltip .hit { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; white-space: nowrap; }
+  .tooltip .below { color: var(--muted); }
+  .tooltip .caveat { color: var(--text2); margin-top: 4px; white-space: normal; }
+  .tooltip dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 8px; margin: 5px 0 0; }
+  .tooltip dt { color: var(--muted); white-space: nowrap; }
+  .tooltip dd { margin: 0; }
+  .tooltip .kc { display: inline-flex; align-items: center; margin-right: 7px; white-space: nowrap; }
+  .tooltip .kc i { width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; }
+  .tooltip .kc .mono { margin-left: 3px; color: var(--text2); }
+  .tooltip .kc i.s { background: var(--hit); }
+  .tooltip .kc i.w { background: var(--weak); }
+  .tooltip .hint { margin-top: 5px; }
+  .tooltip .links { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--hairline); }
+  .tooltip a { color: var(--accent); text-decoration: none; }
+  .tooltip a:hover { text-decoration: underline; }
+  .tooltip .close {
+    position: absolute; top: 3px; right: 4px; border: 0; background: none; color: var(--muted);
+    font-size: 14px; line-height: 1; padding: 2px 5px;
+  }
+  .tooltip .close:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    header, .toolbar, #panel { padding-left: 16px; padding-right: 16px; }
+    .stage { margin-left: 16px; margin-right: 16px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="titlerow">
+    <h1 id="title"></h1>
+    <span class="stats" id="stats"></span>
+    <button class="pill" type="button" id="about-btn" aria-expanded="false" aria-controls="about-box" data-i18n="aboutBtn"></button>
+    <div class="pop" id="about-box" role="dialog" hidden>
+      <p data-i18n="aboutMatrix"></p>
+      <p data-i18n="aboutAggregate"></p>
+      <p data-i18n="aboutOps"></p>
+      <p class="meta" id="meta"></p>
+      <p class="caveat" data-i18n="aboutCaveat"></p>
+    </div>
+    <button class="pill" type="button" id="undetectable-btn" aria-expanded="false" aria-controls="undetectable-box">
+      <span data-i18n="undetectableBtn"></span> <b id="undetectable-count"></b>
+    </button>
+    <div class="pop" id="undetectable-box" role="dialog" hidden><table class="list" id="undetectable"></table></div>
+    <button class="pill" type="button" id="excluded-btn" aria-expanded="false" aria-controls="excluded-box">
+      <span data-i18n="excludedBtn"></span> <b id="excluded-count"></b>
+    </button>
+    <div class="pop" id="excluded-box" role="dialog" hidden><table class="list" id="excluded"></table></div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="group">
+    <div class="seg" role="group" data-i18n-aria="viewMode">
+      <button type="button" id="view-overview" aria-pressed="true" data-i18n="viewOverview" data-i18n-title="viewOverviewTitle"></button>
+      <button type="button" id="view-detail" aria-pressed="false" data-i18n="viewDetail" data-i18n-title="viewDetailTitle"></button>
+    </div>
+    <button type="button" id="zoom-in" data-i18n-aria="zoomIn">＋</button>
+    <button type="button" id="zoom-out" data-i18n-aria="zoomOut">−</button>
+    <span class="hint" id="row-info"></span>
+  </div>
+  <div class="group">
+    <input type="search" id="query" autocomplete="off" data-i18n-placeholder="searchPlaceholder" data-i18n-aria="searchPlaceholder">
+    <span class="hint" id="count"></span>
+  </div>
+  <button type="button" id="panel-btn" aria-expanded="false" aria-controls="panel"><span data-i18n="panelBtn"></span><span class="badge" id="badge"></span></button>
+  <button type="button" id="export"><span data-i18n="export"></span><span class="n" id="export-n"></span></button>
+  <div class="legend">
+    <span><i class="sw hit"></i><span data-i18n="legendHit"></span></span>
+    <span><i class="sw weak"></i><span data-i18n="legendWeak"></span></span>
+    <span><i class="sw none"></i><span data-i18n="legendAbsent"></span></span>
+    <span data-i18n="legendShared"></span>
+  </div>
+</div>
+
+<div id="panel" hidden>
+  <span class="flabel" data-i18n="groupLabel"></span>
+  <div class="chips" id="groups"></div>
+  <label><input type="checkbox" id="sig-only"> <span data-i18n="sigOnly"></span></label>
+  <label><input type="checkbox" id="hide-empty"> <span data-i18n="hideEmpty"></span></label>
+</div>
+
+<div class="stage" id="stage">
+  <canvas id="head"></canvas>
+  <canvas id="body"></canvas>
+  <div id="scroller"><div id="sizer"></div></div>
+</div>
+
+<div class="tooltip" id="tip" role="status"></div>
+
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>
+// Genome x KO matrix drawn on canvas so that tens of thousands of genomes fit on one page.
+// Only the visible rows are drawn. When a row would be thinner than 1px ("fit" view), each
+// screen pixel row summarises the genomes it covers (colour opacity = fraction carrying the KO).
+// Row / column under the cursor are computed from coordinates, so there are no per-cell elements.
+(function () {
+  'use strict';
+  var DATA = JSON.parse(document.getElementById('report-data').textContent);
+
+  // ---- geometry ----------------------------------------------------------------
+  var CELL = 10, CELL_GAP = 2, GROUP_GAP = 8, PAD = 10;
+  var LABEL_W = 128, COUNT_W = 46;
+  var HEAD_GROUP = 30, HEAD_GENE = 15, HEAD_KO = 46, HEAD_COUNT = 16;
+  var HEADER_H = HEAD_GROUP + HEAD_GENE + HEAD_KO + HEAD_COUNT;
+  var ROW_STEPS = [1, 2, 3, 4, 6, 8, 12, 16];
+  var LABEL_MIN_PX = 10;     // genome IDs are drawn from this row height
+  var MAX_FIT_ROW = 16;
+  var CLICK_ZOOM_PX = 12;    // row height after clicking in the fit view
+  var MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+  var SANS = 'system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif';
+
+  // ---- helpers -----------------------------------------------------------------
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ESC[c]; }); }
+  function unique(values) { return Array.from(new Set(values)); }
+  function shortName(gene) { var i = gene.indexOf(' ('); return i > 0 ? gene.slice(0, i) : gene; }
+  function fmt(n) { return Number(n).toLocaleString(DATA.lang === 'ja' ? 'ja-JP' : 'en-US'); }
+  function t(key, params) {
+    var text = DATA.i18n[key];
+    if (text == null) return key;
+    return text.replace(/\{(\w+)\}/g, function (m, name) {
+      return params && Object.prototype.hasOwnProperty.call(params, name) ? params[name] : m;
+    });
+  }
+  // CSS custom properties are read once; the page reloads when the colour scheme changes.
+  var cssCache = {};
+  function css(name) {
+    if (!(name in cssCache)) cssCache[name] = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return cssCache[name];
+  }
+
+  // ---- data --------------------------------------------------------------------
+  var KOS = unique(DATA.columns.map(function (c) { return c.ko; }));
+  var K = KOS.length, N = DATA.genomes.length;
+  var kIndex = {};
+  KOS.forEach(function (ko, i) { kIndex[ko] = i; });
+  DATA.columns.forEach(function (c) { c.k = kIndex[c.ko]; });
+  // levels[genome * K + ko]: 0 = absent, 1 = below-threshold hits only, 2 = significant hit
+  var levels = new Uint8Array(N * K);
+  var idLower = new Array(N);
+  DATA.genomes.forEach(function (g, gi) {
+    idLower[gi] = g.id.toLowerCase();
+    Object.keys(g.hits).forEach(function (ko) {
+      var k = kIndex[ko];
+      if (k === undefined) return;
+      levels[gi * K + k] = g.hits[ko].some(function (h) { return h[4]; }) ? 2 : 1;
+    });
+  });
+  var GROUPS = unique(DATA.columns.map(function (c) { return c.group; }));
+
+  var state = { query: '', groups: new Set(), sigOnly: false, hideEmpty: false, sortKey: 'id', sortDir: 1, rowPx: null };
+  function lv(gi, k) {
+    var v = levels[gi * K + k];
+    return v === 1 && state.sigOnly ? 0 : v;
+  }
+
+  // ---- derived view (recomputed when filters or sorting change) -----------------
+  var view = { cols: [], matrixW: 0, visK: [], order: [], counts: new Uint16Array(N), colCounts: [], maxCount: 1 };
+
+  function recompute() {
+    var cols = state.groups.size
+      ? DATA.columns.filter(function (c) { return state.groups.has(c.group); })
+      : DATA.columns.slice();
+    var x = 0;
+    cols.forEach(function (c, i) {
+      if (i && cols[i - 1].group !== c.group) x += GROUP_GAP - CELL_GAP;
+      c.x = x;
+      x += CELL + CELL_GAP;
+    });
+    view.cols = cols;
+    view.matrixW = cols.length ? x - CELL_GAP : 0;
+    view.visK = unique(cols.map(function (c) { return c.k; }));
+
+    var tokens = state.query.toLowerCase().split(/[\s,]+/).filter(Boolean);
+    var order = [], maxCount = 1;
+    for (var gi = 0; gi < N; gi++) {
+      var n = 0;
+      for (var j = 0; j < view.visK.length; j++) if (lv(gi, view.visK[j])) n++;
+      view.counts[gi] = n;
+      if (state.hideEmpty && !n) continue;
+      if (tokens.length && !tokens.some(function (tok) { return idLower[gi].indexOf(tok) !== -1; })) continue;
+      order.push(gi);
+      if (n > maxCount) maxCount = n;
+    }
+    var dir = state.sortDir, counts = view.counts;
+    if (state.sortKey === 'count') {
+      order.sort(function (a, b) { return dir * (counts[b] - counts[a]) || a - b; });
+    } else if (state.sortKey.indexOf('ko:') === 0) {
+      var k = kIndex[state.sortKey.slice(3)];
+      order.sort(function (a, b) { return dir * (lv(b, k) - lv(a, k)) || a - b; });
+    } else if (dir < 0) {
+      order.reverse();   // genomes arrive sorted by ID
+    }
+    view.order = order;
+    view.maxCount = maxCount;
+    view.colCounts = cols.map(function (c) {
+      var m = 0;
+      for (var i = 0; i < order.length; i++) if (lv(order[i], c.k)) m++;
+      return m;
+    });
+  }
+
+  // ---- canvas setup ------------------------------------------------------------
+  var stage = $('stage'), scroller = $('scroller'), sizer = $('sizer');
+  var headCanvas = $('head'), bodyCanvas = $('body');
+  var headCtx = headCanvas.getContext('2d'), bodyCtx = bodyCanvas.getContext('2d');
+  var G = null;                           // geometry of the last render
+  var hover = { row: -1, col: -1 };       // row = index in view.order (or pixel bin in fit view)
+  var pinned = null;                      // { gi, col }
+
+  function sizeCanvas(canvas, ctx, w, h, top) {
+    var dpr = window.devicePixelRatio || 1;
+    var pw = Math.max(1, Math.round(w * dpr)), ph = Math.max(1, Math.round(h * dpr));
+    if (canvas.width !== pw || canvas.height !== ph) {
+      canvas.width = pw; canvas.height = ph;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    }
+    canvas.style.top = top + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function geom() {
+    var W = stage.clientWidth, H = stage.clientHeight;
+    var bodyH = Math.max(0, H - HEADER_H);
+    var viewH = scroller.clientHeight || bodyH;
+    var n = view.order.length;
+    var rowPx = state.rowPx == null ? (n ? Math.min(MAX_FIT_ROW, viewH / n) : MAX_FIT_ROW) : state.rowPx;
+    var agg = rowPx < 1;
+    var labels = rowPx >= LABEL_MIN_PX;
+    var gutterW = (labels ? LABEL_W : 0) + COUNT_W;
+    return {
+      W: W, bodyH: bodyH, viewH: viewH, n: n, rowPx: rowPx, agg: agg, labels: labels, gutterW: gutterW,
+      x0: gutterW + PAD, bins: Math.max(1, Math.floor(viewH)),
+      contentH: agg ? Math.floor(viewH) : n * rowPx,
+      st: scroller.scrollTop, sl: scroller.scrollLeft
+    };
+  }
+
+  // Genome-index range covered by pixel bin p in the fit view.
+  function binRange(g, p) {
+    var i0 = Math.floor(p * g.n / g.bins);
+    return [i0, Math.min(g.n, Math.max(i0 + 1, Math.floor((p + 1) * g.n / g.bins)))];
+  }
+
+  var fitCache = {};
+  function fitted(ctx, text, maxW) {
+    var key = ctx.font + '|' + text + '|' + Math.round(maxW);
+    if (key in fitCache) return fitCache[key];
+    var out = text;
+    if (ctx.measureText(text).width > maxW) {
+      out = '';
+      for (var n = text.length - 1; n > 0; n--) {
+        if (ctx.measureText(text.slice(0, n) + '…').width <= maxW) { out = text.slice(0, n) + '…'; break; }
+      }
+    }
+    fitCache[key] = out;
+    return out;
+  }
+
+  function runs(cols, keyFn) {
+    var out = [];
+    cols.forEach(function (c, i) {
+      var key = keyFn(c), last = out[out.length - 1];
+      if (last && last.key === key) last.end = i;
+      else out.push({ key: key, col: c, start: i, end: i });
+    });
+    return out;
+  }
+
+  // ---- drawing -----------------------------------------------------------------
+  var frame = 0;
+  function schedule() {
+    if (!frame) frame = requestAnimationFrame(function () { frame = 0; render(); });
+  }
+
+  function render() {
+    scroller.style.top = HEADER_H + 'px';
+    var g = geom();
+    var sw = Math.ceil(g.x0 + view.matrixW + PAD) + 'px', sh = Math.ceil(g.contentH) + 'px';
+    if (sizer.style.width !== sw) sizer.style.width = sw;
+    if (sizer.style.height !== sh) sizer.style.height = sh;
+    g = geom();   // scrollbars may have appeared or disappeared
+    G = g;
+    sizeCanvas(headCanvas, headCtx, g.W, HEADER_H, 0);
+    sizeCanvas(bodyCanvas, bodyCtx, g.W, g.bodyH, HEADER_H);
+    drawBody(g);
+    drawHead(g);
+    $('row-info').textContent = g.agg
+      ? t('rowInfoAggregate', { n: (g.n / g.bins).toFixed(1) })
+      : t('rowInfo', { px: Math.round(g.rowPx * 10) / 10 });
+    var overview = state.rowPx == null;
+    $('view-overview').setAttribute('aria-pressed', String(overview));
+    $('view-detail').setAttribute('aria-pressed', String(!overview));
+  }
+
+  function drawBody(g) {
+    var ctx = bodyCtx, cols = view.cols, order = view.order;
+    var xOff = g.x0 - g.sl;
+    var visH = Math.max(0, Math.min(g.viewH, g.contentH - g.st));
+    ctx.fillStyle = css('--panel');
+    ctx.fillRect(0, 0, g.W, g.bodyH);
+    ctx.fillStyle = css('--empty');
+    cols.forEach(function (c) { ctx.fillRect(xOff + c.x, 0, CELL, visH); });
+
+    if (!g.n) {
+      ctx.fillStyle = css('--muted');
+      ctx.font = '12px ' + SANS;
+      ctx.textBaseline = 'top';
+      ctx.fillText(t('emptyRows'), g.x0, 12);
+      return;
+    }
+    var hit = css('--hit'), weak = css('--weak'), bar = css('--bar');
+    var barX = (g.labels ? LABEL_W : 0) + 6, barMax = COUNT_W - 14;
+    var p, i, ci, r;
+
+    if (g.agg) {
+      for (p = 0; p < g.bins; p++) {
+        r = binRange(g, p);
+        var size = r[1] - r[0];
+        for (ci = 0; ci < cols.length; ci++) {
+          var s = 0, w = 0, k = cols[ci].k;
+          for (i = r[0]; i < r[1]; i++) {
+            var v = lv(order[i], k);
+            if (v === 2) s++; else if (v === 1) w++;
+          }
+          if (!s && !w) continue;
+          ctx.globalAlpha = 0.18 + 0.82 * (s + 0.5 * w) / size;
+          ctx.fillStyle = s ? hit : weak;
+          ctx.fillRect(xOff + cols[ci].x, p, CELL, 1);
+        }
+      }
+      ctx.globalAlpha = 1;
+    } else {
+      var first = Math.max(0, Math.floor(g.st / g.rowPx));
+      var last = Math.min(g.n, Math.ceil((g.st + g.viewH) / g.rowPx));
+      var h = Math.max(1, Math.round(g.rowPx >= 4 ? g.rowPx - 1 : g.rowPx));
+      [2, 1].forEach(function (pass) {
+        ctx.fillStyle = pass === 2 ? hit : weak;
+        for (var i2 = first; i2 < last; i2++) {
+          var y = Math.round(i2 * g.rowPx - g.st), gi = order[i2];
+          for (var c2 = 0; c2 < cols.length; c2++) {
+            if (lv(gi, cols[c2].k) === pass) ctx.fillRect(xOff + cols[c2].x, y, CELL, h);
+          }
+        }
+      });
+    }
+
+    if (hover.col >= 0 && cols[hover.col]) {
+      ctx.fillStyle = css('--cross');
+      ctx.fillRect(xOff + cols[hover.col].x - 1, 0, CELL + 2, visH);
+    }
+
+    // Fixed gutter: genome IDs (when rows are tall enough) and a bar for the number of KOs.
+    ctx.fillStyle = css('--panel');
+    ctx.fillRect(0, 0, g.gutterW, g.bodyH);
+    ctx.fillStyle = css('--hairline');
+    ctx.fillRect(g.gutterW - 1, 0, 1, g.bodyH);
+    ctx.fillStyle = bar;
+    if (g.agg) {
+      for (p = 0; p < g.bins; p++) {
+        r = binRange(g, p);
+        var sum = 0;
+        for (i = r[0]; i < r[1]; i++) sum += view.counts[order[i]];
+        ctx.fillRect(barX, p, Math.max(0.5, barMax * sum / (r[1] - r[0]) / view.maxCount), 1);
+      }
+    } else {
+      var f = Math.max(0, Math.floor(g.st / g.rowPx));
+      var l = Math.min(g.n, Math.ceil((g.st + g.viewH) / g.rowPx));
+      var bh = Math.max(1, Math.round(g.rowPx >= 4 ? g.rowPx - 1 : g.rowPx));
+      ctx.globalAlpha = g.labels ? 0.35 : 1;
+      for (i = f; i < l; i++) {
+        ctx.fillRect(barX, Math.round(i * g.rowPx - g.st), Math.max(0.5, barMax * view.counts[order[i]] / view.maxCount), bh);
+      }
+      ctx.globalAlpha = 1;
+      if (g.labels) {
+        ctx.textBaseline = 'middle';
+        ctx.font = '10.5px ' + MONO;
+        for (i = f; i < l; i++) {
+          var yy = Math.round(i * g.rowPx - g.st) + g.rowPx / 2;
+          ctx.fillStyle = css('--text');
+          ctx.textAlign = 'left';
+          ctx.fillText(DATA.genomes[order[i]].id, 8, yy);
+          ctx.fillStyle = css('--text2');
+          ctx.textAlign = 'right';
+          ctx.fillText(String(view.counts[order[i]]), g.gutterW - 6, yy);
+        }
+        ctx.textAlign = 'left';
+      }
+    }
+
+    // Row under the cursor and the pinned row.
+    function rowBand(index, color, outline) {
+      var y, hh;
+      if (g.agg) { y = index - 1; hh = 3; } else { y = Math.round(index * g.rowPx - g.st); hh = Math.max(2, Math.round(g.rowPx)); }
+      if (y + hh < 0 || y > g.viewH) return;
+      if (outline) {
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+        ctx.strokeRect(1, y - 0.5, g.W - 2, hh + 1);
+      } else {
+        ctx.fillStyle = color; ctx.fillRect(0, y, g.W, hh);
+      }
+    }
+    if (hover.row >= 0) rowBand(hover.row, css('--cross'), false);
+    if (pinned && !g.agg) {
+      var pi = order.indexOf(pinned.gi);
+      if (pi >= 0) rowBand(pi, css('--pin'), true);
+    }
+  }
+
+  function drawHead(g) {
+    var ctx = headCtx, cols = view.cols;
+    var xOff = g.x0 - g.sl;
+    ctx.fillStyle = css('--head');
+    ctx.fillRect(0, 0, g.W, HEADER_H);
+    ctx.fillStyle = css('--hairline');
+    ctx.fillRect(0, HEADER_H - 1, g.W, 1);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(g.gutterW, 0, g.W - g.gutterW, HEADER_H);
+    ctx.clip();
+    if (hover.col >= 0 && cols[hover.col]) {
+      ctx.fillStyle = css('--cross');
+      ctx.fillRect(xOff + cols[hover.col].x - 1, HEAD_GROUP, CELL + 2, HEADER_H - HEAD_GROUP);
+    }
+
+    // Functional groups: two staggered rows so that narrow groups can borrow width from the next one.
+    var groups = runs(cols, function (c) { return c.group; });
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '600 10px ' + SANS;
+    groups.forEach(function (r, i) {
+      var x = xOff + cols[r.start].x, x1 = xOff + cols[r.end].x + CELL;
+      var next = groups[i + 2];
+      var maxW = next ? xOff + cols[next.start].x - 6 - x : Math.max(x1 - x, g.W - x);
+      ctx.fillStyle = css('--text2');
+      ctx.fillText(fitted(ctx, r.key, maxW), x, 11 + (i % 2) * 12);
+      ctx.fillStyle = css('--axis');
+      ctx.fillRect(x, HEAD_GROUP - 3, x1 - x, 1);
+    });
+
+    // Genes (one reference row may expand to several KO columns).
+    ctx.font = '9.5px ' + SANS;
+    runs(cols, function (c) { return c.group + '|' + c.source; }).forEach(function (r) {
+      var x = xOff + cols[r.start].x, w = cols[r.end].x + CELL - cols[r.start].x;
+      if (w < 12) return;
+      ctx.fillStyle = css('--text2');
+      ctx.fillText(fitted(ctx, shortName(cols[r.start].gene), w + CELL_GAP), x, HEAD_GROUP + 10);
+    });
+
+    // KO identifiers, written vertically.
+    ctx.font = '9.5px ' + MONO;
+    ctx.textBaseline = 'middle';
+    cols.forEach(function (c, i) {
+      ctx.save();
+      ctx.translate(xOff + c.x + CELL / 2, HEAD_GROUP + HEAD_GENE + HEAD_KO - 3);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = state.sortKey === 'ko:' + c.ko ? css('--accent') : i === hover.col ? css('--text') : css('--text2');
+      ctx.fillText(c.ko + (c.shared ? '※' : ''), 0, 0);
+      ctx.restore();
+    });
+
+    // Share of the listed genomes carrying each KO.
+    var base = HEADER_H - 3, maxH = HEAD_COUNT - 6;
+    cols.forEach(function (c, i) {
+      var frac = g.n ? view.colCounts[i] / g.n : 0;
+      if (frac > 0) {
+        var h = Math.max(1, frac * maxH);
+        ctx.fillStyle = css('--bar');
+        ctx.fillRect(xOff + c.x, base - h, CELL, h);
+      } else {
+        ctx.fillStyle = css('--zero');
+        ctx.fillRect(xOff + c.x, base - 1, CELL, 1);
+      }
+    });
+    ctx.restore();
+
+    // Gutter header (sort controls).
+    ctx.fillStyle = css('--head');
+    ctx.fillRect(0, 0, g.gutterW, HEADER_H - 1);
+    ctx.fillStyle = css('--hairline');
+    ctx.fillRect(g.gutterW - 1, 0, 1, HEADER_H);
+    ctx.font = '600 10.5px ' + SANS;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = css('--text2');
+    if (g.labels) {
+      ctx.textAlign = 'left';
+      ctx.fillText(t('headGenome') + sortMark('id'), 8, HEADER_H - 7);
+    }
+    ctx.textAlign = 'right';
+    ctx.fillText(t('headKoCount') + sortMark('count'), g.gutterW - 6, HEADER_H - 7);
+    ctx.textAlign = 'left';
+  }
+
+  function sortMark(key) { return state.sortKey === key ? (state.sortDir > 0 ? ' ▼' : ' ▲') : ''; }
+
+  // ---- tooltips ----------------------------------------------------------------
+  var tip = $('tip');
+
+  function hideTip() {
+    if (pinned) return;
+    tip.style.opacity = 0;
+  }
+
+  function showTip(html, isPinned) {
+    tip.innerHTML = (isPinned ? '<button class="close" type="button" aria-label="' + esc(t('tipClose')) + '">×</button>' : '') + html;
+    tip.classList.toggle('pinned', !!isPinned);
+    tip.style.opacity = 1;
+  }
+
+  function moveTip(ev) {
+    var x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8);
+    var y = Math.min(ev.clientY + 14, innerHeight - tip.offsetHeight - 8);
+    tip.style.left = Math.max(4, x) + 'px';
+    tip.style.top = Math.max(4, y) + 'px';
+  }
+
+  function hitLines(hits) {
+    return hits.map(function (h) {
+      return '<div class="hit' + (h[4] ? '' : ' below') + '">'
+        + esc(t('hitLine', { gene: h[0], score: h[1], threshold: h[2], evalue: h[3] }))
+        + esc(t(h[4] ? 'hitSignificant' : 'hitBelowThreshold')) + '</div>';
+    }).join('');
+  }
+
+  function columnDetails(c) {
+    return '<div><b class="mono">' + esc(c.ko) + '</b> ' + esc(c.gene) + '</div>'
+      + '<div class="sub">' + esc(c.group) + ' · ' + esc(t('tipSubstrate', { v: c.substrate })) + '</div>';
+  }
+
+  function genomeTip(gi, col, isPinned) {
+    var genome = DATA.genomes[gi], cols = view.cols;
+    var html = '<div class="head"><b class="mono">' + esc(genome.id) + '</b><span class="n">'
+      + esc(t('tipKoCount', { n: view.counts[gi], total: view.visK.length })) + '</span></div>';
+    var c = col >= 0 ? cols[col] : null;
+    if (c) {
+      var hits = (genome.hits[c.ko] || []).filter(function (h) { return !state.sigOnly || h[4]; });
+      html += '<div class="focus">' + columnDetails(c)
+        + (hits.length ? hitLines(hits) : '<div class="sub">' + esc(t('tipAbsent')) + '</div>') + '</div>';
+    }
+    var byGroup = [];
+    runs(cols, function (x) { return x.group; }).forEach(function (r) {
+      var seen = {}, chips = [];
+      for (var i = r.start; i <= r.end; i++) {
+        var x = cols[i], v = lv(gi, x.k);
+        if (!v || seen[x.ko]) continue;
+        seen[x.ko] = true;
+        chips.push('<span class="kc"><i class="' + (v === 2 ? 's' : 'w') + '"></i>'
+          + esc(shortName(x.gene)) + ' <span class="mono">' + esc(x.ko) + '</span></span>');
+      }
+      if (chips.length) byGroup.push('<dt>' + esc(r.key) + '</dt><dd>' + chips.join('') + '</dd>');
+    });
+    html += byGroup.length ? '<dl>' + byGroup.join('') + '</dl>' : '<div class="sub">' + esc(t('tipNoKos')) + '</div>';
+    if (isPinned) {
+      html += '<div class="links"><a href="https://www.ncbi.nlm.nih.gov/datasets/genome/' + encodeURIComponent(genome.id)
+        + '/" target="_blank" rel="noopener noreferrer">' + esc(t('linkGenome')) + ' ↗</a>';
+      if (c) {
+        html += '<a href="https://www.kegg.jp/entry/' + encodeURIComponent(c.ko)
+          + '" target="_blank" rel="noopener noreferrer">' + esc(t('linkKo', { ko: c.ko })) + ' ↗</a>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div class="hint">' + esc(t('tipPinHint')) + '</div>';
+    }
+    return html;
+  }
+
+  function binTip(g, p, col) {
+    var r = binRange(g, p), order = view.order;
+    var html = '<div class="head"><b class="mono">' + esc(DATA.genomes[order[r[0]]].id)
+      + (r[1] - r[0] > 1 ? ' … ' + esc(DATA.genomes[order[r[1] - 1]].id) : '') + '</b>'
+      + '<span class="n">' + esc(t('tipBinGenomes', { n: fmt(r[1] - r[0]) })) + '</span></div>';
+    var c = col >= 0 ? view.cols[col] : null;
+    if (c) {
+      var m = 0;
+      for (var i = r[0]; i < r[1]; i++) if (lv(order[i], c.k)) m++;
+      html += '<div class="focus">' + columnDetails(c)
+        + '<div>' + esc(t('tipBinKo', { n: fmt(m), total: fmt(r[1] - r[0]) })) + '</div></div>';
+    }
+    return html + '<div class="hint">' + esc(t('tipBinHint')) + '</div>';
+  }
+
+  function columnTip(col) {
+    var c = view.cols[col];
+    var html = columnDetails(c);
+    if (c.priority) html += '<div class="sub">' + esc(t('tipPriority', { v: c.priority })) + '</div>';
+    if (c.tool) html += '<div class="sub">' + esc(t('tipTool', { v: c.tool })) + '</div>';
+    html += '<div class="focus">' + esc(t('tipColumnCount', { n: fmt(view.colCounts[col]), total: fmt(view.order.length) })) + '</div>';
+    var others = DATA.columns.filter(function (o) { return o.ko === c.ko && o.source !== c.source; });
+    if (others.length) {
+      html += '<div class="sub">' + esc(t('koShared')) + ' '
+        + others.map(function (o) { return esc(o.group + ' / ' + shortName(o.gene)); }).join('; ') + '</div>';
+    }
+    if (c.caveats) html += '<div class="caveat">' + esc(c.caveats) + '</div>';
+    return html + '<div class="hint">' + esc(t('koSortHint')) + '</div>';
+  }
+
+  function groupTip(col) {
+    var c = view.cols[col];
+    var n = view.cols.filter(function (x) { return x.group === c.group; }).length;
+    return '<div class="head"><b>' + esc(c.group) + '</b><span class="n">' + esc(t('tipGroupCols', { n: n })) + '</span></div>';
+  }
+
+  function geneTip(col) {
+    var c = view.cols[col];
+    var kos = view.cols.filter(function (x) { return x.source === c.source && x.group === c.group; })
+      .map(function (x) { return x.ko; });
+    var html = '<div><b>' + esc(c.gene) + '</b></div><div class="sub">' + esc(c.group) + ' · '
+      + esc(t('tipSubstrate', { v: c.substrate })) + '</div><div class="mono">' + esc(kos.join(', ')) + '</div>';
+    if (c.caveats) html += '<div class="caveat">' + esc(c.caveats) + '</div>';
+    return html;
+  }
+
+  // ---- pointer handling --------------------------------------------------------
+  function colAtX(mx) {
+    var cols = view.cols;
+    for (var i = 0; i < cols.length; i++) {
+      if (mx >= cols[i].x - CELL_GAP / 2 && mx < cols[i].x + CELL + CELL_GAP / 2) return i;
+    }
+    return -1;
+  }
+
+  // Cell under the pointer in the matrix area, or null (scrollbars, empty space).
+  function bodyTarget(ev) {
+    var g = G, rect = scroller.getBoundingClientRect();
+    var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    if (!g || !g.n || mx >= scroller.clientWidth || my >= scroller.clientHeight) return null;
+    var col = mx < g.gutterW ? -1 : colAtX(mx - g.x0 + g.sl);
+    var row = g.agg ? Math.floor(my) : Math.floor((my + g.st) / g.rowPx);
+    if (row < 0 || row >= (g.agg ? g.bins : g.n)) return null;
+    return { row: row, col: col };
+  }
+
+  function setHover(row, col) {
+    if (hover.row === row && hover.col === col) return false;
+    hover.row = row;
+    hover.col = col;
+    schedule();
+    return true;
+  }
+
+  scroller.addEventListener('mousemove', function (ev) {
+    if (pinned) return;
+    var target = bodyTarget(ev);
+    if (!target) { setHover(-1, -1); hideTip(); return; }
+    if (setHover(target.row, target.col) || tip.style.opacity !== '1') {
+      showTip(G.agg ? binTip(G, target.row, target.col) : genomeTip(view.order[target.row], target.col, false), false);
+    }
+    moveTip(ev);
+  });
+  scroller.addEventListener('mouseleave', function () {
+    if (pinned) return;
+    setHover(-1, -1);
+    hideTip();
+  });
+  scroller.addEventListener('scroll', function () {
+    if (!pinned) { setHover(-1, -1); hideTip(); }
+    schedule();
+  });
+  scroller.addEventListener('click', function (ev) {
+    var target = bodyTarget(ev);
+    if (G && G.agg) {
+      if (!target) return;
+      // Fit view: zoom in around the clicked position.
+      zoomTo(lastDetail.px, binRange(G, target.row)[0]);
+      return;
+    }
+    if (!target || (pinned && pinned.gi === view.order[target.row] && pinned.col === target.col)) { unpin(); return; }
+    pinned = { gi: view.order[target.row], col: target.col };
+    setHover(target.row, target.col);
+    showTip(genomeTip(pinned.gi, pinned.col, true), true);
+    moveTip(ev);
+    schedule();
+  });
+
+  function unpin() {
+    if (!pinned) return;
+    pinned = null;
+    tip.classList.remove('pinned');
+    tip.style.opacity = 0;
+    setHover(-1, -1);
+    schedule();
+  }
+  tip.addEventListener('click', function (ev) { if (ev.target.closest('.close')) unpin(); });
+  addEventListener('keydown', function (ev) { if (ev.key === 'Escape') unpin(); });
+
+  // Header: tooltips for groups / genes / KOs, click to sort.
+  function headTarget(ev) {
+    var g = G, rect = headCanvas.getBoundingClientRect();
+    var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    if (!g) return null;
+    if (mx < g.gutterW) return { area: g.labels && mx < LABEL_W ? 'id' : 'count' };
+    var col = colAtX(mx - g.x0 + g.sl);
+    if (col < 0) return null;
+    return { area: my < HEAD_GROUP ? 'group' : my < HEAD_GROUP + HEAD_GENE ? 'gene' : 'ko', col: col };
+  }
+
+  headCanvas.addEventListener('mousemove', function (ev) {
+    if (pinned) return;
+    var target = headTarget(ev);
+    headCanvas.style.cursor = target && target.area !== 'group' && target.area !== 'gene' ? 'pointer' : 'default';
+    if (!target) { setHover(-1, -1); hideTip(); return; }
+    setHover(-1, target.col == null ? -1 : target.col);
+    var html = target.area === 'id' ? esc(t('sortHintGenome'))
+      : target.area === 'count' ? esc(t('sortHintCount'))
+      : target.area === 'group' ? groupTip(target.col)
+      : target.area === 'gene' ? geneTip(target.col)
+      : columnTip(target.col);
+    showTip(html, false);
+    moveTip(ev);
+  });
+  headCanvas.addEventListener('mouseleave', function () {
+    if (pinned) return;
+    setHover(-1, -1);
+    hideTip();
+  });
+  headCanvas.addEventListener('click', function (ev) {
+    var target = headTarget(ev);
+    if (!target || target.area === 'group' || target.area === 'gene') return;
+    var key = target.area === 'ko' ? 'ko:' + view.cols[target.col].ko : target.area;
+    if (state.sortKey !== key) { state.sortKey = key; state.sortDir = 1; }
+    else if (state.sortDir > 0) state.sortDir = -1;
+    else { state.sortKey = 'id'; state.sortDir = 1; }
+    scroller.scrollTop = 0;   // show the top of the new order
+    update();
+  });
+
+  // ---- zoom --------------------------------------------------------------------
+  // Detail-view position (row height and the genome at the centre), restored by the Detail button.
+  var lastDetail = { px: CLICK_ZOOM_PX, gi: null };
+
+  function zoomTo(px, centerIndex) {
+    var g = geom();
+    if (centerIndex == null) {
+      centerIndex = g.agg ? Math.floor(g.n / 2) : Math.floor((g.st + g.viewH / 2) / g.rowPx);
+    }
+    if (px == null && state.rowPx != null && g.n) {
+      // Keep the position, but never restore a row height too small to read (e.g. after "−" down to 1px).
+      lastDetail = {
+        px: state.rowPx >= LABEL_MIN_PX ? state.rowPx : CLICK_ZOOM_PX,
+        gi: view.order[Math.min(g.n - 1, Math.max(0, centerIndex))]
+      };
+    }
+    unpin();
+    state.rowPx = px;
+    render();
+    var g2 = geom();
+    scroller.scrollTop = g2.agg ? 0 : Math.max(0, centerIndex * g2.rowPx - g2.viewH / 2);
+    render();
+  }
+  function fitRowPx() {
+    var n = view.order.length, h = scroller.clientHeight || 1;
+    return n ? Math.min(MAX_FIT_ROW, h / n) : MAX_FIT_ROW;
+  }
+  $('view-overview').addEventListener('click', function () {
+    if (state.rowPx != null) zoomTo(null);
+  });
+  $('view-detail').addEventListener('click', function () {
+    if (state.rowPx != null) return;
+    var i = lastDetail.gi == null ? -1 : view.order.indexOf(lastDetail.gi);
+    zoomTo(lastDetail.px, i >= 0 ? i : 0);
+  });
+  $('zoom-in').addEventListener('click', function () {
+    var cur = geom().rowPx;
+    var next = ROW_STEPS.filter(function (s) { return s > cur + 1e-6; })[0];
+    if (next) zoomTo(next);
+  });
+  $('zoom-out').addEventListener('click', function () {
+    var cur = geom().rowPx, fit = fitRowPx();
+    var prev = ROW_STEPS.filter(function (s) { return s < cur - 1e-6 && s > fit; }).pop();
+    zoomTo(prev || null);
+  });
+
+  // ---- filters / panel / export ------------------------------------------------
+  function update() {
+    unpin();
+    recompute();
+    var n = view.order.length;
+    $('count').textContent = n === N ? t('countAll', { n: fmt(N) }) : t('countFiltered', { n: fmt(n), total: fmt(N) });
+    $('export-n').textContent = fmt(n);
+    $('export').title = t('exportTitle', { n: fmt(n) });
+    var nSel = state.groups.size + (state.sigOnly ? 1 : 0) + (state.hideEmpty ? 1 : 0);
+    $('badge').textContent = nSel ? String(nSel) : '';
+    Array.prototype.forEach.call($('groups').children, function (b) {
+      b.setAttribute('aria-pressed', String(state.groups.has(b.dataset.group)));
+    });
+    render();
+  }
+
+  GROUPS.forEach(function (name) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.group = name;
+    b.innerHTML = esc(name) + '<span class="n">' + DATA.columns.filter(function (c) { return c.group === name; }).length + '</span>';
+    b.addEventListener('click', function () {
+      if (state.groups.has(name)) state.groups.delete(name); else state.groups.add(name);
+      scroller.scrollLeft = 0;
+      update();
+    });
+    $('groups').appendChild(b);
+  });
+  if (DATA.significantOnly) $('sig-only').disabled = true;
+  $('sig-only').addEventListener('change', function (ev) { state.sigOnly = ev.target.checked; update(); });
+  $('hide-empty').addEventListener('change', function (ev) { state.hideEmpty = ev.target.checked; update(); });
+  var timer = null;
+  $('query').addEventListener('input', function (ev) {
+    clearTimeout(timer);
+    timer = setTimeout(function () { state.query = ev.target.value; scroller.scrollTop = 0; update(); }, 150);
+  });
+  $('panel-btn').addEventListener('click', function () {
+    var open = $('panel').hidden;
+    $('panel').hidden = !open;
+    $('panel-btn').setAttribute('aria-expanded', String(open));
+    schedule();
+  });
+  $('export').addEventListener('click', function () {
+    var cols = view.cols;
+    var lines = [['genome_id', 'n_kos'].concat(cols.map(function (c) { return c.ko + ' ' + shortName(c.gene); })).join('\t')];
+    view.order.forEach(function (gi) {
+      lines.push([DATA.genomes[gi].id, view.counts[gi]].concat(cols.map(function (c) { return lv(gi, c.k) ? 1 : 0; })).join('\t'));
+    });
+    // BOM so that Excel opens the file as UTF-8.
+    var url = URL.createObjectURL(new Blob(['﻿' + lines.join('\n') + '\n'], { type: 'text/tab-separated-values;charset=utf-8' }));
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'ko_presence_' + view.order.length + 'genomes.tsv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+
+  // Header pop-ups: open on hover, click to keep open, Esc / outside click to close.
+  function hoverPanel(btnId, boxId) {
+    var btn = $(btnId), box = $(boxId), keep = false;
+    function show(on) { box.hidden = !on; btn.setAttribute('aria-expanded', String(on)); }
+    function hide() { if (!keep) show(false); }
+    btn.addEventListener('mouseenter', function () { show(true); });
+    btn.addEventListener('mouseleave', function () { setTimeout(function () { if (!box.matches(':hover')) hide(); }, 80); });
+    box.addEventListener('mouseleave', hide);
+    btn.addEventListener('click', function (ev) { ev.stopPropagation(); keep = !keep; show(keep); });
+    addEventListener('click', function (ev) { if (keep && !box.contains(ev.target) && ev.target !== btn) { keep = false; show(false); } });
+    addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && keep) { keep = false; show(false); } });
+  }
+
+  function listTable(headerKeys, rows) {
+    return '<tr>' + headerKeys.map(function (k) { return '<th>' + esc(t(k)) + '</th>'; }).join('') + '</tr>'
+      + rows.map(function (cells) {
+        return '<tr>' + cells.map(function (v) { return '<td>' + esc(v) + '</td>'; }).join('') + '</tr>';
+      }).join('');
+  }
+
+  function renderStatic() {
+    document.title = DATA.title;
+    $('title').textContent = DATA.title;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (node) {
+      node.textContent = t(node.getAttribute('data-i18n'));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-placeholder]'), function (node) {
+      node.placeholder = t(node.getAttribute('data-i18n-placeholder'));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-aria]'), function (node) {
+      node.setAttribute('aria-label', t(node.getAttribute('data-i18n-aria')));
+      node.title = t(node.getAttribute('data-i18n-aria'));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-title]'), function (node) {
+      node.title = t(node.getAttribute('data-i18n-title'));
+    });
+    $('stats').textContent = t('statSummary', {
+      analysed: fmt(N + DATA.genomesWithoutHits), shown: fmt(N), hidden: fmt(DATA.genomesWithoutHits), kos: K
+    });
+    var meta = [];
+    if (DATA.generated) meta.push(t('metaGenerated', { v: DATA.generated }));
+    if (DATA.source) meta.push(t('metaSource', { v: DATA.source }));
+    if (DATA.significantOnly) meta.push(t('metaSignificantOnly'));
+    $('meta').textContent = meta.join(t('metaSeparator'));
+
+    $('undetectable-count').textContent = DATA.undetectable.length;
+    $('undetectable').innerHTML = listTable(
+      ['colGroup', 'colSubstrate', 'colGene', 'colKoText', 'colTool'],
+      DATA.undetectable.map(function (u) { return [u.group, u.substrate, u.gene, u.koText, u.tool]; })
+    );
+    $('excluded-count').textContent = DATA.excluded.length;
+    $('excluded').innerHTML = DATA.excluded.length
+      ? listTable(['colGenome', 'colStatus', 'colMessage'], DATA.excluded.map(function (e) { return [e.id, e.status, e.message]; }))
+      : '<tr><td>' + esc(t('excludedNone')) + '</td></tr>';
+    hoverPanel('about-btn', 'about-box');
+    hoverPanel('undetectable-btn', 'undetectable-box');
+    hoverPanel('excluded-btn', 'excluded-box');
+  }
+
+  renderStatic();
+  update();
+  new ResizeObserver(schedule).observe(stage);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { location.reload(); });
+})();
+</script>
+</body>
+</html>
