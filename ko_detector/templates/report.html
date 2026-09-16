@@ -11,6 +11,8 @@
     --text: #0b0b0b; --text2: #52514e; --muted: #898781;
     --hairline: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
     --hit: #16805f; --weak: #8fcdb5; --empty: rgba(11,11,11,0.05);
+    --hit-acc: #d4640f; --weak-acc: #f4c39a; --bar-acc: #e0914f;
+    --btn-don: #16805f; --btn-acc: #b9560c;
     --bar: #6f9f8b; --zero: #c9c7bf; --cross: rgba(42,120,214,0.16);
     --link: #a9a8a1; --band: rgba(11,11,11,0.035);
     --accent: #2a78d6; --pin: #e34948;
@@ -22,6 +24,7 @@
       --text: #ffffff; --text2: #c3c2b7; --muted: #898781;
       --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
       --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
+      --hit-acc: #f0913f; --weak-acc: #6e4220; --bar-acc: #b8773f; --btn-don: #32b98c; --btn-acc: #f0913f;
       --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
       --link: #6b6a66; --band: rgba(255,255,255,0.045);
       --accent: #3987e5; --pin: #e66767;
@@ -33,6 +36,7 @@
     --text: #ffffff; --text2: #c3c2b7; --muted: #898781;
     --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
     --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
+    --hit-acc: #f0913f; --weak-acc: #6e4220; --bar-acc: #b8773f; --btn-don: #32b98c; --btn-acc: #f0913f;
     --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
     --link: #6b6a66; --band: rgba(255,255,255,0.045);
     --accent: #3987e5; --pin: #e66767;
@@ -80,6 +84,12 @@
   .seg button:first-child { border-radius: 6px 0 0 6px; }
   .seg button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
   .seg button[aria-pressed="true"], #tax-sort[aria-pressed="true"] { background: var(--text); color: var(--panel); border-color: var(--text); }
+  /* Section toggles: green for donors, orange for acceptors. Filled = expanded, outlined = collapsed. */
+  #role-toggles button[data-role="donor"] { --role-btn: var(--btn-don); }
+  #role-toggles button[data-role="acceptor"] { --role-btn: var(--btn-acc); }
+  #role-toggles button { position: relative; font-weight: 600; color: var(--role-btn); border-color: var(--role-btn); }
+  #role-toggles button:first-child { z-index: 1; }
+  #role-toggles button[aria-pressed="true"] { background: var(--role-btn); border-color: var(--role-btn); color: var(--panel); }
   input[type="search"] { width: 18em; max-width: 60vw; }
   .hint { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
   .badge:not(:empty) {
@@ -91,6 +101,8 @@
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; box-shadow: 0 0 0 1px var(--border) inset; }
   .sw.hit { background: var(--hit); }
   .sw.weak { background: var(--weak); }
+  .sw.hit-acc { background: var(--hit-acc); }
+  .sw.weak-acc { background: var(--weak-acc); }
   .sw.none { background: var(--empty); }
 
   #panel { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 0 14px 6px; }
@@ -134,6 +146,8 @@
   .tooltip .kc .mono { margin-left: 3px; color: var(--text2); }
   .tooltip .kc i.s { background: var(--hit); }
   .tooltip .kc i.w { background: var(--weak); }
+  .tooltip .kc i.sa { background: var(--hit-acc); }
+  .tooltip .kc i.wa { background: var(--weak-acc); }
   .tooltip .hint { margin-top: 5px; }
   .tooltip .links { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--hairline); }
   .tooltip a { color: var(--accent); text-decoration: none; }
@@ -158,6 +172,7 @@
     <button class="pill" type="button" id="about-btn" aria-expanded="false" aria-controls="about-box" data-i18n="aboutBtn"></button>
     <div class="pop" id="about-box" role="dialog" hidden>
       <p data-i18n="aboutMatrix"></p>
+      <p id="about-roles" data-i18n="aboutRoles"></p>
       <p data-i18n="aboutAggregate"></p>
       <p id="about-tree" data-i18n="aboutTree"></p>
       <p data-i18n="aboutOps"></p>
@@ -186,6 +201,7 @@
     <span class="hint" id="row-info"></span>
   </div>
   <button type="button" id="tax-sort" aria-pressed="false" data-i18n="taxSort" data-i18n-title="taxSortTitle" hidden></button>
+  <div class="seg" role="group" id="role-toggles" data-i18n-aria="roleToggles" hidden></div>
   <div class="group">
     <input type="search" id="query" autocomplete="off" data-i18n-placeholder="searchPlaceholder" data-i18n-aria="searchPlaceholder">
     <span class="hint" id="count"></span>
@@ -193,10 +209,11 @@
   <button type="button" id="panel-btn" aria-expanded="false" aria-controls="panel"><span data-i18n="panelBtn"></span><span class="badge" id="badge"></span></button>
   <button type="button" id="export"><span data-i18n="export"></span><span class="n" id="export-n"></span></button>
   <div class="legend">
-    <span><i class="sw hit"></i><span data-i18n="legendHit"></span></span>
-    <span><i class="sw weak"></i><span data-i18n="legendWeak"></span></span>
+    <span><i class="sw hit"></i><i class="sw hit-acc role-only"></i><span data-i18n="legendHit"></span></span>
+    <span><i class="sw weak"></i><i class="sw weak-acc role-only"></i><span data-i18n="legendWeak"></span></span>
     <span><i class="sw none"></i><span data-i18n="legendAbsent"></span></span>
     <span data-i18n="legendShared"></span>
+    <span class="role-only" data-i18n="legendRoles"></span>
   </div>
 </div>
 
@@ -231,8 +248,13 @@
   var CELL = 10, CELL_GAP = 2, GROUP_GAP = 8, PAD = 10;
   var LABEL_W = 128, COUNT_W = 46;
   var TREE_LABEL_W = 104, TREE_W = 236, TREE_STUB = 8, TREE_PAD = 8;
+  // Columns are split into role sections (electron donors / acceptors), each collapsible.
+  var HAS_ROLES = DATA.columns.some(function (c) { return c.role; });
+  var ROLE_GAP = 16;          // space between sections (a separator line sits in the middle)
+  var STUB_W = 18;            // width of a collapsed section
+  var HEAD_ROLE = HAS_ROLES ? 18 : 0;
   var HEAD_GROUP = 30, HEAD_GENE = 15, HEAD_KO = 46, HEAD_COUNT = 16;
-  var HEADER_H = HEAD_GROUP + HEAD_GENE + HEAD_KO + HEAD_COUNT;
+  var HEADER_H = HEAD_ROLE + HEAD_GROUP + HEAD_GENE + HEAD_KO + HEAD_COUNT;
   var ROW_STEPS = [1, 2, 3, 4, 6, 8, 12, 16];
   var LABEL_MIN_PX = 10;     // genome IDs are drawn from this row height
   var MAX_FIT_ROW = 16;
@@ -278,6 +300,10 @@
     });
   });
   var GROUPS = unique(DATA.columns.map(function (c) { return c.group; }));
+  var ROLES = unique(DATA.columns.map(function (c) { return c.role || ''; }));
+  function roleLabel(role) {
+    return role === 'donor' ? t('roleDonor') : role === 'acceptor' ? t('roleAcceptor') : t('roleOther');
+  }
 
   // ---- taxonomy tree (optional) --------------------------------------------------
   // nodes: [name, rank index, taxid, parent index]; every genome hangs below a species-rank node.
@@ -337,7 +363,7 @@
 
   var state = {
     query: '', groups: new Set(), sigOnly: false, hideEmpty: false,
-    sortKey: DEFAULT_SORT, sortDir: 1, rowPx: null
+    sortKey: DEFAULT_SORT, sortDir: 1, rowPx: null, collapsed: {}
   };
   function lv(gi, k) {
     var v = levels[gi * K + k];
@@ -346,21 +372,36 @@
 
   // ---- derived view (recomputed when filters or sorting change) -----------------
   var view = {
-    cols: [], matrixW: 0, visK: [], order: [], counts: new Uint16Array(N), colCounts: [], maxCount: 1, treeOn: false
+    cols: [], sections: [], matrixW: 0, visK: [], order: [], counts: new Uint16Array(N), colCounts: [], maxCount: 1, treeOn: false
   };
 
   function recompute() {
-    var cols = state.groups.size
-      ? DATA.columns.filter(function (c) { return state.groups.has(c.group); })
-      : DATA.columns.slice();
-    var x = 0;
-    cols.forEach(function (c, i) {
-      if (i && cols[i - 1].group !== c.group) x += GROUP_GAP - CELL_GAP;
-      c.x = x;
-      x += CELL + CELL_GAP;
+    // Lay out one section per role; a collapsed section keeps only a narrow stub.
+    var cols = [], sections = [], x = 0;
+    ROLES.forEach(function (role) {
+      var list = DATA.columns.filter(function (c) {
+        return (c.role || '') === role && (!state.groups.size || state.groups.has(c.group));
+      });
+      if (!list.length) return;
+      if (sections.length) x += ROLE_GAP;
+      var section = { role: role, x0: x, collapsed: !!state.collapsed[role], n: list.length };
+      if (section.collapsed) {
+        x += STUB_W;
+      } else {
+        list.forEach(function (c, i) {
+          if (i && list[i - 1].group !== c.group) x += GROUP_GAP - CELL_GAP;
+          c.x = x;
+          x += CELL + CELL_GAP;
+          cols.push(c);
+        });
+        x -= CELL_GAP;
+      }
+      section.x1 = x;
+      sections.push(section);
     });
     view.cols = cols;
-    view.matrixW = cols.length ? x - CELL_GAP : 0;
+    view.sections = sections;
+    view.matrixW = x;
     view.visK = unique(cols.map(function (c) { return c.k; }));
 
     var tokens = state.query.toLowerCase().split(/[\s,]+/).filter(Boolean);
@@ -560,8 +601,10 @@
     if (view.treeOn) drawBands(ctx, g, g.fixedW, g.W - g.fixedW);
     ctx.fillStyle = css('--empty');
     cols.forEach(function (c) { ctx.fillRect(xOff + c.x, 0, CELL, visH); });
+    drawSections(ctx, xOff, 0, visH);
 
-    var hit = css('--hit'), weak = css('--weak');
+    // Donor columns green, acceptor columns orange.
+    var hit = css('--hit'), weak = css('--weak'), hitAcc = css('--hit-acc'), weakAcc = css('--weak-acc');
     var p, i, ci, r;
     if (g.agg) {
       for (p = 0; p < g.bins; p++) {
@@ -575,7 +618,7 @@
           }
           if (!s && !w) continue;
           ctx.globalAlpha = 0.18 + 0.82 * (s + 0.5 * w) / size;
-          ctx.fillStyle = s ? hit : weak;
+          ctx.fillStyle = cols[ci].role === 'acceptor' ? (s ? hitAcc : weakAcc) : (s ? hit : weak);
           ctx.fillRect(xOff + cols[ci].x, p, CELL, 1);
         }
       }
@@ -583,12 +626,13 @@
     } else {
       var vr = visibleRows(g);
       var h = Math.max(1, Math.round(g.rowPx >= 4 ? g.rowPx - 1 : g.rowPx));
-      [2, 1].forEach(function (pass) {
-        ctx.fillStyle = pass === 2 ? hit : weak;
+      [[2, false], [1, false], [2, true], [1, true]].forEach(function (p2) {
+        var pass = p2[0], acc = p2[1];
+        ctx.fillStyle = acc ? (pass === 2 ? hitAcc : weakAcc) : (pass === 2 ? hit : weak);
         for (var i2 = vr[0]; i2 < vr[1]; i2++) {
           var y = Math.round(i2 * g.rowPx - g.st), gi = order[i2];
           for (var c2 = 0; c2 < cols.length; c2++) {
-            if (lv(gi, cols[c2].k) === pass) ctx.fillRect(xOff + cols[c2].x, y, CELL, h);
+            if ((cols[c2].role === 'acceptor') === acc && lv(gi, cols[c2].k) === pass) ctx.fillRect(xOff + cols[c2].x, y, CELL, h);
           }
         }
       });
@@ -635,6 +679,20 @@
       var pi = order.indexOf(pinned.gi);
       if (pi >= 0) rowBand(pi, css('--pin'), true);
     }
+  }
+
+  // Collapsed-section stubs and the separator lines between sections.
+  function drawSections(ctx, xOff, y0, h) {
+    view.sections.forEach(function (s, i) {
+      if (s.collapsed) {
+        ctx.fillStyle = css('--band');
+        ctx.fillRect(xOff + s.x0, y0, STUB_W, h);
+      }
+      if (i) {
+        ctx.fillStyle = css('--axis');
+        ctx.fillRect(Math.round(xOff + s.x0 - ROLE_GAP / 2), y0, 1, h);
+      }
+    });
   }
 
   function drawGutter(ctx, g) {
@@ -801,7 +859,7 @@
     ctx.clip();
     if (hover.col >= 0 && cols[hover.col]) {
       ctx.fillStyle = css('--cross');
-      ctx.fillRect(xOff + cols[hover.col].x - 1, HEAD_GROUP, CELL + 2, HEADER_H - HEAD_GROUP);
+      ctx.fillRect(xOff + cols[hover.col].x - 1, HEAD_ROLE + HEAD_GROUP, CELL + 2, HEADER_H - HEAD_ROLE - HEAD_GROUP);
     }
 
     // Functional groups: two staggered rows so that narrow groups can borrow width from the next one.
@@ -813,10 +871,13 @@
       var x = xOff + cols[r.start].x, x1 = xOff + cols[r.end].x + CELL;
       var next = groups[i + 2];
       var maxW = next ? xOff + cols[next.start].x - 6 - x : Math.max(x1 - x, g.W - x);
+      // Never run past the end of the role section (into the separator or a collapsed stub).
+      var section = sectionAtX(cols[r.start].x);
+      if (section) maxW = Math.min(maxW, section.x1 + ROLE_GAP / 2 - 4 - cols[r.start].x);
       ctx.fillStyle = css('--text2');
-      ctx.fillText(fitted(ctx, r.key, maxW), x, 11 + (i % 2) * 12);
+      ctx.fillText(fitted(ctx, r.key, maxW), x, HEAD_ROLE + 11 + (i % 2) * 12);
       ctx.fillStyle = css('--axis');
-      ctx.fillRect(x, HEAD_GROUP - 3, x1 - x, 1);
+      ctx.fillRect(x, HEAD_ROLE + HEAD_GROUP - 3, x1 - x, 1);
     });
 
     // Genes (one reference row may expand to several KO columns).
@@ -825,7 +886,7 @@
       var x = xOff + cols[r.start].x, w = cols[r.end].x + CELL - cols[r.start].x;
       if (w < 12) return;
       ctx.fillStyle = css('--text2');
-      ctx.fillText(fitted(ctx, shortName(cols[r.start].gene), w + CELL_GAP), x, HEAD_GROUP + 10);
+      ctx.fillText(fitted(ctx, shortName(cols[r.start].gene), w + CELL_GAP), x, HEAD_ROLE + HEAD_GROUP + 10);
     });
 
     // KO identifiers, written vertically.
@@ -833,7 +894,7 @@
     ctx.textBaseline = 'middle';
     cols.forEach(function (c, i) {
       ctx.save();
-      ctx.translate(xOff + c.x + CELL / 2, HEAD_GROUP + HEAD_GENE + HEAD_KO - 3);
+      ctx.translate(xOff + c.x + CELL / 2, HEAD_ROLE + HEAD_GROUP + HEAD_GENE + HEAD_KO - 3);
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = state.sortKey === 'ko:' + c.ko ? css('--accent') : i === hover.col ? css('--text') : css('--text2');
       ctx.fillText(c.ko + (c.shared ? '※' : ''), 0, 0);
@@ -846,13 +907,14 @@
       var frac = g.n ? view.colCounts[i] / g.n : 0;
       if (frac > 0) {
         var h = Math.max(1, frac * maxH);
-        ctx.fillStyle = css('--bar');
+        ctx.fillStyle = css(c.role === 'acceptor' ? '--bar-acc' : '--bar');
         ctx.fillRect(xOff + c.x, base - h, CELL, h);
       } else {
         ctx.fillStyle = css('--zero');
         ctx.fillRect(xOff + c.x, base - 1, CELL, 1);
       }
     });
+    if (HAS_ROLES) drawRoleBand(ctx, xOff);
     ctx.restore();
 
     // Fixed block header: rank labels over the tree, sort controls over the gutter.
@@ -885,6 +947,30 @@
     ctx.textAlign = 'right';
     ctx.fillText(t('headKoCount') + sortMark('count'), g.fixedW - 6, HEADER_H - 7);
     ctx.textAlign = 'left';
+  }
+
+  // Top header band: one clickable label per role section ("▾ open" / "▸ collapsed").
+  function drawRoleBand(ctx, xOff) {
+    drawSections(ctx, xOff, 0, HEADER_H - 1);
+    ctx.font = '600 10.5px ' + SANS;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    view.sections.forEach(function (s) {
+      var x = xOff + s.x0, w = s.x1 - s.x0;
+      ctx.fillStyle = css('--band');
+      if (!s.collapsed) ctx.fillRect(x, 0, w, HEAD_ROLE - 3);
+      ctx.fillStyle = css('--text');
+      if (s.collapsed) {
+        ctx.fillText('▸', x + 4, HEAD_ROLE / 2);
+        ctx.save();
+        ctx.translate(x + STUB_W / 2, HEADER_H - 6);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(fitted(ctx, roleLabel(s.role), HEADER_H - HEAD_ROLE - 10), 0, 0);
+        ctx.restore();
+      } else {
+        ctx.fillText(fitted(ctx, '▾ ' + roleLabel(s.role) + '  ' + t('roleColumns', { n: s.n }), w + ROLE_GAP / 2), x + 2, HEAD_ROLE / 2 - 1);
+      }
+    });
   }
 
   function sortMark(key) { return state.sortKey === key ? (state.sortDir > 0 ? ' ▼' : ' ▲') : ''; }
@@ -957,7 +1043,7 @@
         var x = cols[i], v = lv(gi, x.k);
         if (!v || seen[x.ko]) continue;
         seen[x.ko] = true;
-        chips.push('<span class="kc"><i class="' + (v === 2 ? 's' : 'w') + '"></i>'
+        chips.push('<span class="kc"><i class="' + (v === 2 ? 's' : 'w') + (x.role === 'acceptor' ? 'a' : '') + '"></i>'
           + esc(shortName(x.gene)) + '<span class="mono">' + esc(x.ko) + '</span></span>');
       }
       if (chips.length) byGroup.push('<dt>' + esc(r.key) + '</dt><dd>' + chips.join('') + '</dd>');
@@ -1023,6 +1109,24 @@
     return html + '<div class="hint">' + esc(t('koSortHint')) + '</div>';
   }
 
+  function roleTip(s) {
+    return '<div class="head"><b>' + esc(roleLabel(s.role)) + '</b><span class="n">' + esc(t('roleColumns', { n: s.n })) + '</span></div>'
+      + '<div class="hint">' + esc(s.collapsed ? t('roleExpandHint') : t('roleCollapseHint')) + '</div>';
+  }
+
+  function toggleRole(role) {
+    state.collapsed[role] = !state.collapsed[role];
+    update();
+  }
+
+  function sectionAtX(cx) {
+    for (var i = 0; i < view.sections.length; i++) {
+      var s = view.sections[i];
+      if (cx >= s.x0 - ROLE_GAP / 2 && cx < s.x1 + ROLE_GAP / 2) return s;
+    }
+    return null;
+  }
+
   function groupTip(col) {
     var c = view.cols[col];
     var n = view.cols.filter(function (x) { return x.group === c.group; }).length;
@@ -1061,6 +1165,10 @@
         : Math.max(0, Math.min(LEAF_DEPTH, Math.ceil((mx - TREE_LABEL_W - TREE_STUB) / TREE_STEP)));
       return { row: row, col: -1, rank: rank >= LEAF_DEPTH ? -1 : rank };
     }
+    if (mx >= g.fixedW) {
+      var section = sectionAtX(mx - g.x0 + g.sl);
+      if (section && section.collapsed) return { row: row, col: -1, rank: -1, stub: section };
+    }
     return { row: row, col: mx < g.fixedW ? -1 : colAtX(mx - g.x0 + g.sl), rank: -1 };
   }
 
@@ -1077,6 +1185,12 @@
     if (pinned) return;
     var target = bodyTarget(ev);
     if (!target) { setHover(-1, -1, -1); hideTip(); return; }
+    if (target.stub) {
+      setHover(-1, -1, -1);
+      showTip(roleTip(target.stub), false);
+      moveTip(ev);
+      return;
+    }
     if (setHover(target.row, target.col, target.rank) || tip.style.opacity !== '1') {
       showTip(tipHtml(G, target, false), false);
     }
@@ -1093,6 +1207,7 @@
   });
   scroller.addEventListener('click', function (ev) {
     var target = bodyTarget(ev);
+    if (target && target.stub) { toggleRole(target.stub.role); return; }
     if (G && G.agg) {
       if (!target) return;
       // Overview: open the detail view around the clicked position.
@@ -1126,9 +1241,12 @@
     var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
     if (!g || mx < g.treeW) return null;
     if (mx < g.fixedW) return { area: g.labels && mx < g.gutterX + LABEL_W ? 'id' : 'count' };
-    var col = colAtX(mx - g.x0 + g.sl);
+    var cx = mx - g.x0 + g.sl, section = sectionAtX(cx);
+    if (section && (section.collapsed || my < HEAD_ROLE)) return { area: 'role', section: section };
+    var col = colAtX(cx);
     if (col < 0) return null;
-    return { area: my < HEAD_GROUP ? 'group' : my < HEAD_GROUP + HEAD_GENE ? 'gene' : 'ko', col: col };
+    var y = my - HEAD_ROLE;
+    return { area: y < HEAD_GROUP ? 'group' : y < HEAD_GROUP + HEAD_GENE ? 'gene' : 'ko', col: col };
   }
 
   headCanvas.addEventListener('mousemove', function (ev) {
@@ -1137,7 +1255,8 @@
     headCanvas.style.cursor = target && target.area !== 'group' && target.area !== 'gene' ? 'pointer' : 'default';
     if (!target) { setHover(-1, -1, -1); hideTip(); return; }
     setHover(-1, target.col == null ? -1 : target.col, -1);
-    var html = target.area === 'id' ? esc(t('sortHintGenome'))
+    var html = target.area === 'role' ? roleTip(target.section)
+      : target.area === 'id' ? esc(t('sortHintGenome'))
       : target.area === 'count' ? esc(t('sortHintCount'))
       : target.area === 'group' ? groupTip(target.col)
       : target.area === 'gene' ? geneTip(target.col)
@@ -1152,6 +1271,7 @@
   });
   headCanvas.addEventListener('click', function (ev) {
     var target = headTarget(ev);
+    if (target && target.area === 'role') { toggleRole(target.section.role); return; }
     if (!target || target.area === 'group' || target.area === 'gene') return;
     var key = target.area === 'ko' ? 'ko:' + view.cols[target.col].ko : target.area;
     if (state.sortKey !== key) { state.sortKey = key; state.sortDir = 1; }
@@ -1216,6 +1336,9 @@
     $('export-n').textContent = fmt(n);
     $('export').title = t('exportTitle', { n: fmt(n) });
     $('tax-sort').setAttribute('aria-pressed', String(state.sortKey === 'tax'));
+    Array.prototype.forEach.call($('role-toggles').children, function (b) {
+      b.setAttribute('aria-pressed', String(!state.collapsed[b.dataset.role]));
+    });
     var nSel = state.groups.size + (state.sigOnly ? 1 : 0) + (state.hideEmpty ? 1 : 0);
     $('badge').textContent = nSel ? String(nSel) : '';
     Array.prototype.forEach.call($('groups').children, function (b) {
@@ -1320,6 +1443,18 @@
       node.title = t(node.getAttribute('data-i18n-title'));
     });
     $('tax-sort').hidden = !HAS_TREE;
+    ROLES.filter(Boolean).forEach(function (role) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.role = role;
+      b.textContent = roleLabel(role);
+      b.title = t('roleButtonTitle', { role: roleLabel(role) });
+      b.addEventListener('click', function () { toggleRole(role); });
+      $('role-toggles').appendChild(b);
+    });
+    $('role-toggles').hidden = !HAS_ROLES;
+    Array.prototype.forEach.call(document.querySelectorAll('.role-only'), function (node) { node.hidden = !HAS_ROLES; });
+    $('about-roles').hidden = !HAS_ROLES;
     $('about-tree').hidden = !HAS_TREE;
     $('stats').textContent = t('statSummary', {
       analysed: fmt(N + DATA.genomesWithoutHits), shown: fmt(N), hidden: fmt(DATA.genomesWithoutHits), kos: K

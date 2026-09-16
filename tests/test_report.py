@@ -92,6 +92,47 @@ class HtmlTest(unittest.TestCase):
 
 
 class CliTest(unittest.TestCase):
+    def test_scan_with_donor_and_acceptor_configs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sheets = {
+                "donor": "Functional group\tElectron donor\tGene / enzyme\tKO\nSOB\tSO3 2-\taprAB + sat\tK00394, K00958\n",
+                "acceptor": "Functional group\tElectron acceptor\tGene / enzyme\tKO\nSRB\tSO4 2-\tsat\tK00958\nO2\tO2\tcoxABC\tK02274-K02275\n",
+            }
+            configs = []
+            for role, text in sheets.items():
+                reference = root / f"{role}.tsv"
+                reference.write_text(text, encoding="utf-8")
+                configs.append(root / f"{role}_ko_config.tsv")
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(main(["build-config", "-r", str(reference), "-o", str(configs[-1])]), 0)
+            genome = root / "in" / "GCF_000000001.1"
+            genome.mkdir(parents=True)
+            (genome / "GCF_000000001.1.faa.kofam.kolist_gene.tsv").write_text(
+                "KO\tgene name\tthrshld\tscore\tE-value\tsignificant\n"
+                "K00958\tWP_1\t1\t2\t1e-5\t*\n"
+                "K02274\tWP_2\t1\t2\t1e-5\t*\n",
+                encoding="utf-8",
+            )
+            out = root / "out"
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(["scan", "-i", str(root / "in"), "-o", str(out), "--no-taxonomy",
+                                       "-c", str(configs[0]), "-c", str(configs[1])]), 0)
+            summary = {line.split("\t")[0]: line.split("\t") for line in (out / "ko_summary.tsv").read_text(encoding="utf-8").splitlines()[1:]}
+            self.assertEqual(list(summary), ["K00394", "K00958", "K02274", "K02275"])
+            self.assertEqual(summary["K00958"][1:3], ["donor; acceptor", "aprAB + sat; sat"])
+            self.assertEqual((summary["K00958"][5], summary["K02274"][5], summary["K00394"][5]), ("1", "1", "0"))
+            hits = (out / "genome_ko_hits.tsv").read_text(encoding="utf-8").splitlines()
+            self.assertIn("\tdonor; acceptor\t", hits[1])
+            used = (out / "ko_config_used.tsv").read_text(encoding="utf-8")
+            self.assertEqual(used.count("\tacceptor\t"), 3)
+            # render-html reads the combined copy back, roles included
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(["render-html", "-i", str(out), "--no-taxonomy"]), 0)
+            columns = embedded_data((out / "report.html").read_text(encoding="utf-8"))["columns"]
+            self.assertEqual([(c["ko"], c["role"]) for c in columns],
+                             [("K00394", "donor"), ("K00958", "donor"), ("K00958", "acceptor"), ("K02274", "acceptor"), ("K02275", "acceptor")])
+
     def test_build_config_scan_and_render(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -127,10 +168,10 @@ class CliTest(unittest.TestCase):
             self.assertIn("Genomes: 1 analysed, 1 excluded", stdout.getvalue())
 
             summary = (out / "ko_summary.tsv").read_text(encoding="utf-8").splitlines()
-            self.assertEqual([line.split("\t")[:5] for line in summary[1:]], [
-                ["K17218", "sqr", "SOB", "HS-", "1"],
-                ["K17222", "sox", "SOB", "S2O3 2-", "0"],
-                ["K17223", "sox", "SOB", "S2O3 2-", "1"],
+            self.assertEqual([line.split("\t")[:6] for line in summary[1:]], [
+                ["K17218", "donor", "sqr", "SOB", "HS-", "1"],
+                ["K17222", "donor", "sox", "SOB", "S2O3 2-", "0"],
+                ["K17223", "donor", "sox", "SOB", "S2O3 2-", "1"],
             ])
             matrix = (out / "genome_ko_matrix.tsv").read_text(encoding="utf-8").splitlines()
             self.assertEqual(matrix, ["genome_id\tK17218\tK17222\tK17223", "GCF_000000001.1\t1\t0\t1"])

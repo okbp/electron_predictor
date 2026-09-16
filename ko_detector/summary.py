@@ -23,6 +23,10 @@ class KoSummary:
         return self.n_genomes / self.total_genomes if self.total_genomes else 0.0
 
     @property
+    def role(self) -> str:
+        return join_unique(entry.role for entry in self.entries)
+
+    @property
     def gene_enzyme(self) -> str:
         return join_unique(entry.gene_enzyme for entry in self.entries)
 

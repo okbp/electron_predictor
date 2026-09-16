@@ -1,4 +1,4 @@
-"""Parse the KO reference sheet and read/write the KO configuration file."""
+"""Parse the KO reference sheets and read/write the KO configuration file."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import csv
 import logging
 import re
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .models import KoEntry
 
@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 CONFIG_COLUMNS = (
     "ko",
+    "role",
     "functional_group",
     "substrate",
     "gene_enzyme",
@@ -38,15 +39,20 @@ REFERENCE_COLUMNS: Dict[str, Sequence[str]] = {
     "recommended_tool": ("Recommended tool",),
 }
 REQUIRED_REFERENCE_FIELDS = ("functional_group", "gene_enzyme", "ko")
+# The substrate column's header tells which sheet this is.
+ROLE_BY_SUBSTRATE_HEADER = {"Electron donor": "donor", "Electron acceptor": "acceptor"}
+ROLES = ("donor", "acceptor")
 
 KO_ID_RE = re.compile(r"K\d{5}")
 # A single KO ("K17218") or a range ("K17222-K17227", en dash and "K17222-17227" accepted).
 KO_TOKEN_RE = re.compile(r"\bK(\d{5})\b(?:\s*[-‐-―~]\s*K?(\d{5})\b)?")
+# What may appear between KOs in a KO list ("K00368 / K15864", "K03385, K15876 / K00362, K00363").
+KO_LIST_FILLER_RE = re.compile(r"[\s,;/]+|\b(?:and|or)\b")
 MAX_KO_RANGE = 100
 
 
 def parse_ko_field(text: str) -> List[str]:
-    """Extract KO identifiers from a free-text KO cell, expanding ranges."""
+    """Extract KO identifiers from a KO cell, expanding ranges."""
     kos: List[str] = []
     for match in KO_TOKEN_RE.finditer(text):
         start = int(match.group(1))
@@ -62,18 +68,30 @@ def parse_ko_field(text: str) -> List[str]:
     return kos
 
 
-def _resolve_reference_columns(fieldnames: Optional[Sequence[str]], path: Path) -> Dict[str, str]:
+def is_ko_list(text: str) -> bool:
+    """True when the cell holds only KOs, ranges and separators.
+
+    A description that merely mentions a KO — e.g. "Closely related to psrABC (K08352); poor KO
+    resolution" on the phsABC row — is not a KO list for that row.
+    """
+    return bool(text.strip()) and not KO_LIST_FILLER_RE.sub("", KO_TOKEN_RE.sub("", text))
+
+
+def _resolve_reference_columns(fieldnames: Optional[Sequence[str]], path: Path) -> Tuple[Dict[str, str], str]:
     present = {name.strip(): name for name in fieldnames or ()}
     columns: Dict[str, str] = {}
+    role = ""
     for key, candidates in REFERENCE_COLUMNS.items():
         for candidate in candidates:
             if candidate in present:
                 columns[key] = present[candidate]
+                if key == "substrate":
+                    role = ROLE_BY_SUBSTRATE_HEADER.get(candidate, "")
                 break
     missing = [key for key in REQUIRED_REFERENCE_FIELDS if key not in columns]
     if missing:
         raise ValueError(f"{path}: missing reference column(s) for {', '.join(missing)}")
-    return columns
+    return columns, role
 
 
 def read_reference(path: Path) -> List[KoEntry]:
@@ -81,7 +99,7 @@ def read_reference(path: Path) -> List[KoEntry]:
     entries: List[KoEntry] = []
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle, delimiter="\t")
-        columns = _resolve_reference_columns(reader.fieldnames, path)
+        columns, role = _resolve_reference_columns(reader.fieldnames, path)
         for row in reader:
             values = {key: "" for key in REFERENCE_COLUMNS}
             values.update({key: (row.get(column) or "").strip() for key, column in columns.items()})
@@ -93,12 +111,17 @@ def read_reference(path: Path) -> List[KoEntry]:
                 kos = parse_ko_field(values["ko"])
             except ValueError as exc:
                 raise ValueError(f"{source}: {exc}") from None
-            if not kos:
+            if kos and not is_ko_list(values["ko"]):
+                logger.warning(
+                    "%s: KO field %r is a description, not a KO list (mentions %s); kept with empty ko for %s",
+                    source, values["ko"], ", ".join(kos), values["gene_enzyme"],
+                )
+                kos = []
+            elif not kos:
                 logger.warning(
                     "%s: no KO in %r for %s (kept with empty ko)", source, values["ko"], values["gene_enzyme"]
                 )
-                kos = [""]
-            for ko in kos:
+            for ko in kos or [""]:
                 entries.append(
                     KoEntry(
                         ko=ko,
@@ -111,6 +134,7 @@ def read_reference(path: Path) -> List[KoEntry]:
                         caveats=values["caveats"],
                         ko_text=values["ko"],
                         source=source,
+                        role=role,
                     )
                 )
     return entries
@@ -149,10 +173,20 @@ def read_config(path: Path) -> List[KoEntry]:
             values["ko"] = values["ko"].upper()
             if values["ko"] and not KO_ID_RE.fullmatch(values["ko"]):
                 raise ValueError(f"{path}: invalid KO {values['ko']!r} ({values['gene_enzyme']})")
+            if values["role"] and values["role"] not in ROLES:
+                raise ValueError(f"{path}: invalid role {values['role']!r} ({values['gene_enzyme']})")
             if not any(values.values()):
                 continue
             entries.append(KoEntry(**values))
     return entries
+
+
+def read_configs(paths: Iterable[Path]) -> List[KoEntry]:
+    """Entries of several configuration files in order; an entry repeated verbatim is kept once."""
+    entries: List[KoEntry] = []
+    for path in paths:
+        entries.extend(read_config(path))
+    return list(dict.fromkeys(entries))
 
 
 def searchable_kos(entries: Iterable[KoEntry]) -> List[str]:

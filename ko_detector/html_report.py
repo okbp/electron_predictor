@@ -64,6 +64,7 @@ def build_payload(
     columns = [
         {
             "ko": entry.ko,
+            "role": entry.role,
             "group": entry.functional_group,
             "substrate": entry.substrate,
             "gene": entry.gene_enzyme,

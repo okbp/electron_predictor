@@ -32,6 +32,8 @@ class KoEntry:
     caveats: str = ""
     ko_text: str = ""
     source: str = ""
+    # "donor" / "acceptor" (from the reference sheet's substrate column); empty when unknown.
+    role: str = ""
 
 
 @dataclass(frozen=True)

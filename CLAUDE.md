@@ -1,12 +1,12 @@
-# CLAUDE.md — electron_predictor (electron donor KO presence)
+# CLAUDE.md — electron_predictor (electron donor / acceptor KO presence)
 
 Guidance for Claude Code working in this repository. User-facing instructions are in `README.md`.
 
 ## Purpose
 
-Check whether the KOs in the reference table of electron donors used by chemolithoautotrophic bacteria
-(`config/chemolithoautotroph_donor_acceptor_KO_reference.tsv`) are present in genomes annotated with
-KofamScan, and output per-KO genome counts plus an HTML report.
+Check whether the KOs in the reference tables of electron donors and electron acceptors used by chemolithoautotrophic
+bacteria (`config/chemolithoautotroph_donor_acceptor_{donor,acceptor}_ko_reference.tsv`) are present in genomes annotated
+with KofamScan, and output per-KO genome counts plus an HTML report.
 The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_reference_genomes_only_gene`).
 
 ## Settled decisions (set by the user — do not change)
@@ -25,6 +25,11 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
   (e.g. do not add soxD, K22622, to `K17222-K17227`).
 - **Detection is KO presence only.** No phylogenetic resolution of shared KOs (amo/pmo, nxr/nar, dsr direction).
   Complexes are reported per KO; there is currently no "is the whole complex present" call.
+- **Donors and acceptors are analysed in one scan** (`scan -c config/donor_ko_config.tsv -c config/acceptor_ko_config.tsv`).
+  Every configuration row has a `role` (`donor` / `acceptor`) taken from the reference header (`Electron donor` /
+  `Electron acceptor`). A KO on both sheets is detected once and reported with role `donor; acceptor`.
+- **The report splits columns into collapsible role sections** (electron donors / electron acceptors), because the combined
+  table is too wide. Both start expanded; the top header band, a collapsed section's stub, and toolbar buttons toggle them.
 - Always write **two reports: Japanese `report.html` and English `report_en.html`**.
 - Even at ~20,000 genomes the report shows **everything on one page without pagination**, compactly, with details in tooltips.
 - Genomes carrying none of the target KOs are **not shown in the HTML** (only their count). They stay in the TSVs and in the denominators.
@@ -47,14 +52,22 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 | `models.py` | `KoEntry` / `Hit` / `GenomeResult` and status constants |
 | `templates/report.html` | the report (CSS / JS inline) |
 | `templates/messages/{ja,en}.json` | UI strings |
+| `scripts/build_configs.py` | builds `config/donor_ko_config.tsv` and `config/acceptor_ko_config.tsv` from the two reference tables (fixed names in `SHEETS`) |
 | `scripts/setup_taxonomy.py` | downloads NCBI new_taxdump and assembly_summary_refseq.txt (independent of ko_detector) |
 
 ## Reference parsing (`reference.py`)
 
 - Columns are looked up by header name (`REFERENCE_COLUMNS`). `Electron donor` / `Electron acceptor` / `Substrate`
-  all map to `substrate`, so acceptor or CO2-fixation sheets in the same format can be read too.
+  all map to `substrate`; the header that matched sets `role` (`ROLE_BY_SUBSTRATE_HEADER`; `Substrate` gives an empty role).
+  `read_config` rejects roles other than `donor` / `acceptor` / empty. `scripts/build_configs.py` refuses a table whose
+  role does not match the file it is built into.
+- The acceptor table is exported by Excel: fields with commas are quoted. The csv module handles this; do not split on tabs by hand.
 - Rows with an empty `Functional group`, or with both `Gene / enzyme` and `KO` empty, are skipped (blank rows, trailing notes).
 - `KO_TOKEN_RE` picks up single KOs and ranges in order. Ranges must be fewer than 100 wide; reversed ranges are errors.
+  Separators between KOs may be `,` `/` `;` `and` `or` (`K00368 / K15864`, `K03385, K15876 / K00362, K00363`).
+- **A KO cell is used only if it is purely a KO list** (`is_ko_list`). A description that mentions a KO —
+  phsABC's `Closely related to psrABC (K08352); poor KO resolution` — becomes an empty KO with a warning; otherwise
+  K08352 (psrABC's own KO) would be counted as phsABC.
 - Rows yielding no KO are **kept in the configuration with an empty KO** and a warning, so a KO can be filled in by hand.
   `scan` ignores them; the HTML lists them under "Items without KO".
 - A row with several KOs becomes several entries. The same KO in several rows stays that way (K10944–6 appear in 3 rows).
@@ -64,6 +77,8 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 ## Scan (`kofam.py` / `summary.py`)
 
 - If a header line exists (first column `KO`), columns are looked up by name; otherwise `KOFAM_COLUMNS` order is assumed.
+- `scan` / `render-html` take `-c` repeatedly; `read_configs` concatenates the files and drops rows repeated verbatim.
+  The union of KOs is detected in a single pass over the genomes. `ko_config_used.tsv` stores all rows together.
 - The same `(KO, gene)` is one hit. Several matching files in one genome are merged (`multiple_files`).
 - Status: `ok` / `multiple_files` are counted; `no_file` / `error` are left out of the denominator and the scan continues.
 - Summaries always include KOs found in no genome.
@@ -148,6 +163,23 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
   to the node at rank d, as in the viewer); the phylum label column counts as phylum. The hovered / pinned path is drawn bold.
 - Measured with 18,242 genomes: load ~155 ms; tree layout + overview draw ~13 ms; detail / overview switch ~20 ms.
 
+### Role sections
+
+- `HAS_ROLES` (any column has a `role`) adds a `HEAD_ROLE` band at the top of the header; results without roles
+  (older `ko_config_used.tsv`) get no band and one section.
+- `recompute()` lays out one section per role in `ROLES` order (config order): columns with `GROUP_GAP` between functional
+  groups, `ROLE_GAP` between sections (separator line in the middle). A collapsed section becomes a `STUB_W` strip and
+  its columns leave `view.cols`, so "KOs", sorting counts and the TSV export only cover expanded sections.
+- **Acceptor columns are orange, donor columns green** (user request): `--hit-acc` / `--weak-acc` / `--bar-acc`
+  (light and dark) are used for cells, the overview aggregation, header share bars and tooltip chips (`.kc i.sa` / `.wa`)
+  whenever `column.role === 'acceptor'`. The legend's orange swatches and "green = donors / orange = acceptors" note are
+  `.role-only` and hidden without roles.
+- The toolbar section toggles (`#role-toggles`) are coloured by role too (user request): filled with `--btn-don` / `--btn-acc`
+  when expanded, outlined in that colour when collapsed. `--btn-acc` (light #b9560c) is darker than the cell orange so white
+  text stays readable; dark mode uses the bright cell colours with dark text.
+- Hit-testing: header y < `HEAD_ROLE`, or anywhere over a stub (header or body), is the section toggle (`sectionAtX`).
+  All other header rows are offset by `HEAD_ROLE`; keep that offset when touching header geometry.
+
 ### Tooltips
 
 - Row and column are **computed from coordinates** (`bodyTarget()` / `headTarget()`); no per-cell elements or listeners.
@@ -170,8 +202,9 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 ## Verifying changes
 
 ```bash
-python3 -m unittest                                   # 30 tests, no network
-python3 -m ko_detector scan -i data/examples -c config/ko_config.tsv -o <scratch dir>
+python3 -m unittest                                   # 40 tests, no network
+python3 scripts/build_configs.py                      # donor 38 KOs / acceptor 59 KOs, 11 rows without KO each
+python3 -m ko_detector scan -i data/examples -c config/donor_ko_config.tsv -c config/acceptor_ko_config.tsv -o <scratch dir>
 python3 -m ko_detector render-html -i data/results/refseq_reference_genomes -o <scratch dir>
 ```
 

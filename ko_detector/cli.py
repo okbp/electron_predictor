@@ -13,7 +13,7 @@ from . import __version__
 from .html_report import REPORT_FILES, write_reports
 from .kofam import DEFAULT_PATTERN, GENOME_DIR_PREFIX, scan_directory
 from .models import GenomeResult, KoEntry
-from .reference import read_config, read_references, searchable_kos, write_config
+from .reference import read_configs, read_references, searchable_kos, write_config
 from .results_io import (
     CONFIG_COPY_FILE,
     GENOME_TAXONOMY_FILE,
@@ -33,10 +33,10 @@ DEFAULT_RESULTS_DIR = Path("data") / "results"
 DEFAULT_TAXONOMY_DIR = Path("data") / "taxonomy"
 
 
-def _load_entries(config: Optional[Path], references: Optional[List[Path]]) -> List[KoEntry]:
-    if config is not None:
-        entries = read_config(config)
-        logger.info("loaded %d config rows from %s", len(entries), config)
+def _load_entries(configs: Optional[List[Path]], references: Optional[List[Path]]) -> List[KoEntry]:
+    if configs:
+        entries = read_configs(configs)
+        logger.info("loaded %d config rows from %s", len(entries), ", ".join(map(str, configs)))
     else:
         entries = read_references(references or [])
         logger.info("parsed %d KO entries from reference sheet(s)", len(entries))
@@ -119,7 +119,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
         "input_dir": str(args.input_dir),
         "pattern": args.pattern,
         "significant_only": args.significant_only,
-        "config": str(args.config) if args.config else None,
+        "config": [str(path) for path in args.config] if args.config else None,
         "reference": [str(path) for path in args.reference] if args.reference else None,
         "taxonomy": taxonomy is not None,
         "n_genome_dirs": len(results),
@@ -137,8 +137,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
 
 def cmd_render_html(args: argparse.Namespace) -> int:
-    config = args.config or args.results_dir / CONFIG_COPY_FILE
-    entries = read_config(config)
+    entries = read_configs(args.config or [args.results_dir / CONFIG_COPY_FILE])
     results = read_results(args.results_dir)
     taxonomy_file = args.results_dir / GENOME_TAXONOMY_FILE
     if not args.no_taxonomy and args.taxonomy_dir is None and taxonomy_file.is_file():
@@ -190,7 +189,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output-dir", type=Path,
                    help=f"directory for result files (default: {DEFAULT_RESULTS_DIR}/<input-dir name>)")
     source = p.add_mutually_exclusive_group(required=True)
-    source.add_argument("-c", "--config", type=Path, help="KO configuration file (from build-config)")
+    source.add_argument("-c", "--config", type=Path, action="append",
+                        help="KO configuration file (from build-config); repeat for donor and acceptor")
     source.add_argument("-r", "--reference", type=Path, action="append",
                         help="reference TSV read directly instead of a configuration file (repeatable)")
     p.add_argument("--pattern", default=DEFAULT_PATTERN, help=f"KofamScan file glob (default: {DEFAULT_PATTERN})")
@@ -203,7 +203,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = subparsers.add_parser("render-html", parents=[common], help="(re)build the HTML reports from scan results")
     p.add_argument("-i", "--results-dir", type=Path, required=True, help="output directory of a previous scan")
-    p.add_argument("-c", "--config", type=Path, help=f"KO configuration (default: <results-dir>/{CONFIG_COPY_FILE})")
+    p.add_argument("-c", "--config", type=Path, action="append",
+                   help=f"KO configuration, repeatable (default: <results-dir>/{CONFIG_COPY_FILE})")
     p.add_argument("-o", "--output-dir", type=Path,
                    help=f"directory for {' / '.join(REPORT_FILES.values())} (default: <results-dir>)")
     _add_taxonomy_arguments(p, f"<results-dir>/{GENOME_TAXONOMY_FILE}, else {DEFAULT_TAXONOMY_DIR} when present")

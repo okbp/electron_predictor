@@ -29,11 +29,13 @@ HIT_COLUMNS = (
     "score",
     "evalue",
     "significant",
+    "role",
     "gene_enzyme",
     "functional_group",
 )
 SUMMARY_COLUMNS = (
     "ko",
+    "role",
     "gene_enzyme",
     "functional_group",
     "substrate",
@@ -87,6 +89,7 @@ def write_hits(path: Path, entries: Sequence[KoEntry], results: Sequence[GenomeR
             hit.score,
             hit.evalue,
             "*" if hit.significant else "",
+            join_unique(entry.role for entry in grouped.get(hit.ko, ())),
             join_unique(entry.gene_enzyme for entry in grouped.get(hit.ko, ())),
             join_unique(entry.functional_group for entry in grouped.get(hit.ko, ())),
         )
@@ -113,6 +116,7 @@ def write_summary(path: Path, summaries: Sequence[KoSummary]) -> None:
     rows = (
         (
             summary.ko,
+            summary.role,
             summary.gene_enzyme,
             summary.functional_group,
             summary.substrate,
