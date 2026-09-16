@@ -5,17 +5,19 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Sequence
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence
 
 from .models import GenomeResult, Hit, KoEntry
 from .reference import entries_by_ko, join_unique, searchable_kos, write_config
 from .summary import KoSummary
+from .taxonomy import TAXONOMY_RANKS, GenomeTaxonomy
 
 STATUS_FILE = "genome_status.tsv"
 HITS_FILE = "genome_ko_hits.tsv"
 MATRIX_FILE = "genome_ko_matrix.tsv"
 SUMMARY_FILE = "ko_summary.tsv"
 CONFIG_COPY_FILE = "ko_config_used.tsv"
+GENOME_TAXONOMY_FILE = "genome_taxonomy.tsv"
 RUN_INFO_FILE = "run_info.json"
 
 STATUS_COLUMNS = ("genome_id", "status", "n_rows", "n_target_kos", "n_hits", "files", "message")
@@ -39,6 +41,9 @@ SUMMARY_COLUMNS = (
     "n_genomes_significant",
     "fraction",
     "total_genomes",
+)
+TAXONOMY_COLUMNS = ("genome_id", "taxid", "organism_name") + tuple(
+    column for rank in TAXONOMY_RANKS for column in (rank, f"{rank}_taxid")
 )
 FILE_SEPARATOR = ";"
 
@@ -121,12 +126,34 @@ def write_summary(path: Path, summaries: Sequence[KoSummary]) -> None:
     _write_tsv(path, SUMMARY_COLUMNS, rows)
 
 
+def write_genome_taxonomy(path: Path, results: Sequence[GenomeResult], taxonomy: Dict[str, GenomeTaxonomy]) -> None:
+    rows = (
+        [info.genome_id, info.taxid, info.organism_name] + [value for pair in info.lineage for value in pair]
+        for info in (taxonomy.get(result.genome_id) for result in results)
+        if info is not None
+    )
+    _write_tsv(path, TAXONOMY_COLUMNS, rows)
+
+
+def read_genome_taxonomy(path: Path) -> Dict[str, GenomeTaxonomy]:
+    return {
+        row["genome_id"]: GenomeTaxonomy(
+            genome_id=row["genome_id"],
+            taxid=row["taxid"],
+            organism_name=row["organism_name"],
+            lineage=tuple((row[rank], row[f"{rank}_taxid"]) for rank in TAXONOMY_RANKS),
+        )
+        for row in _read_tsv(path)
+    }
+
+
 def write_scan_outputs(
     output_dir: Path,
     entries: Sequence[KoEntry],
     results: Sequence[GenomeResult],
     summaries: Sequence[KoSummary],
     run_info: Dict[str, object],
+    taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
 ) -> Dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {name: output_dir / name for name in (STATUS_FILE, HITS_FILE, MATRIX_FILE, SUMMARY_FILE)}
@@ -134,6 +161,9 @@ def write_scan_outputs(
     write_hits(paths[HITS_FILE], entries, results)
     write_matrix(paths[MATRIX_FILE], entries, results)
     write_summary(paths[SUMMARY_FILE], summaries)
+    if taxonomy is not None:
+        paths[GENOME_TAXONOMY_FILE] = output_dir / GENOME_TAXONOMY_FILE
+        write_genome_taxonomy(paths[GENOME_TAXONOMY_FILE], results, taxonomy)
 
     paths[CONFIG_COPY_FILE] = output_dir / CONFIG_COPY_FILE
     write_config(entries, paths[CONFIG_COPY_FILE], comments=["copy of the configuration used for this scan"])

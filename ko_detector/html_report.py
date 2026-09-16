@@ -6,9 +6,10 @@ import html
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from .models import GenomeResult, KoEntry
+from .taxonomy import TAXONOMY_RANKS, GenomeTaxonomy
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 TEMPLATE_PATH = TEMPLATE_DIR / "report.html"
@@ -24,12 +25,38 @@ def load_messages(lang: str) -> Dict[str, str]:
     return json.loads((MESSAGES_DIR / f"{lang}.json").read_text(encoding="utf-8"))
 
 
+def _attach_taxonomy(genomes: List[Dict[str, object]], taxonomy: Dict[str, GenomeTaxonomy]) -> Dict[str, object]:
+    """Build the taxonomy tree of the listed genomes and point each genome at its species node.
+
+    Nodes are ``[name, rank index, taxid, parent index]``. Every genome gets a node at every rank;
+    a missing rank becomes a placeholder node (empty name and taxid) shared under the same parent.
+    """
+    nodes: List[List[object]] = []
+    index: Dict[Tuple[int, str], int] = {}
+    for genome in genomes:
+        info = taxonomy.get(str(genome["id"]))
+        parent = -1
+        for rank_index in range(len(TAXONOMY_RANKS)):
+            name, taxid = info.lineage[rank_index] if info else ("", "")
+            key = (parent, taxid)
+            if key not in index:
+                index[key] = len(nodes)
+                nodes.append([name if taxid else "", rank_index, taxid, parent])
+            parent = index[key]
+        genome["tax"] = parent
+        if info:
+            genome["org"] = info.organism_name
+            genome["taxid"] = info.taxid
+    return {"ranks": list(TAXONOMY_RANKS), "nodes": nodes}
+
+
 def build_payload(
     entries: Sequence[KoEntry],
     results: Sequence[GenomeResult],
     lang: str = "ja",
     title: Optional[str] = None,
     run_info: Optional[Dict[str, object]] = None,
+    taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
 ) -> Dict[str, object]:
     run_info = run_info or {}
     messages = load_messages(lang)
@@ -88,6 +115,7 @@ def build_payload(
         "genomesWithoutHits": n_without_hits,
         "excluded": excluded,
         "undetectable": undetectable,
+        "taxonomy": _attach_taxonomy(genomes, taxonomy) if taxonomy is not None else None,
     }
 
 
@@ -114,11 +142,12 @@ def write_reports(
     results: Sequence[GenomeResult],
     run_info: Optional[Dict[str, object]] = None,
     titles: Optional[Dict[str, str]] = None,
+    taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
 ) -> Dict[str, Path]:
     """Write one report per language; ``titles`` overrides the default title per language."""
     titles = titles or {}
     paths: Dict[str, Path] = {}
     for lang, filename in REPORT_FILES.items():
         paths[lang] = output_dir / filename
-        write_html(paths[lang], build_payload(entries, results, lang, titles.get(lang), run_info))
+        write_html(paths[lang], build_payload(entries, results, lang, titles.get(lang), run_info, taxonomy))
     return paths

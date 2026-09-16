@@ -28,15 +28,20 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 - Always write **two reports: Japanese `report.html` and English `report_en.html`**.
 - Even at ~20,000 genomes the report shows **everything on one page without pagination**, compactly, with details in tooltips.
 - Genomes carrying none of the target KOs are **not shown in the HTML** (only their count). They stay in the TSVs and in the denominators.
+- **Taxonomy tree like `../autotrophic_genomes/viewer`**: NCBI classification (domain → phylum → class → order → family → genus → species),
+  no distance calculation. Drawn on the report canvas, **not with d3 / SVG** (~23,000 nodes + 18,242 leaves would be too many DOM elements).
+  Rows follow taxonomic order by default; sorting by a KO or KO count hides the tree and the "Taxonomy tree" button restores it.
+  Missing ranks become "unclassified" placeholder nodes so every genome sits at the same depth.
 
 ## Modules
 
 | File | Role |
 | --- | --- |
-| `cli.py` | `build-config` / `scan` / `render-html`. Default `-o` is `data/results/<input directory name>` (relative to the working directory) |
+| `cli.py` | `build-config` / `scan` / `render-html`. Default `-o` is `data/results/<input directory name>` and default taxonomy is `data/taxonomy` when present (both relative to the working directory) |
 | `reference.py` | reference table → `KoEntry`; KO configuration (TSV) read/write |
 | `kofam.py` | `GCF_*` discovery, `*.kolist_gene.tsv` reading → `GenomeResult` |
 | `summary.py` | per-KO genome counts (`KoSummary`) |
+| `taxonomy.py` | genome lineages (`GenomeTaxonomy`) from the assembly summary and new_taxdump in `data/taxonomy` |
 | `results_io.py` | writes result TSVs / `run_info.json`, and reads them back for `render-html` |
 | `html_report.py` | embeds the payload (JSON) and UI strings into the template |
 | `models.py` | `KoEntry` / `Hit` / `GenomeResult` and status constants |
@@ -63,10 +68,24 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 - Status: `ok` / `multiple_files` are counted; `no_file` / `error` are left out of the denominator and the scan continues.
 - Summaries always include KOs found in no genome.
 
+## Taxonomy (`taxonomy.py`)
+
+- Inputs (downloaded by `scripts/setup_taxonomy.py`): `assembly_summary_refseq.txt` (accession → taxid, organism name),
+  `new_taxdump/merged.dmp` (old → current taxid), `taxidlineage.dmp` (ancestors), `nodes.dmp` (rank of each taxid),
+  `rankedlineage.dmp` (name of each taxid, column 2 only). Same approach as the viewer's `build-tree-all.mjs`.
+- **Do not take species from the `rankedlineage.dmp` species column**: it is empty when the taxid itself is a species
+  (15,791 of 18,242 genomes). Walk the ancestors (plus the taxid itself) and pick the node whose rank is each of the 7 ranks.
+- Dump fields are separated by `\t|\t`; `taxidlineage.dmp` lists ancestors space-separated (root first, with a trailing space).
+  The top rank is `domain` in current dumps; older dumps say `superkingdom` (`RANK_ALIASES`).
+- Each dump is streamed and filtered by taxid (first column checked before splitting), so memory stays small.
+  23,434 genomes resolve in about 3–5 seconds. If an accession is missing, another version of the same accession is used.
+- `scan` writes `genome_taxonomy.tsv`. `render-html` prefers that file, then `--taxonomy-dir` / `data/taxonomy`;
+  `--no-taxonomy` disables the tree. Tests pass `--no-taxonomy` so they never read the real `data/taxonomy`.
+
 ## Output / read-back contract (`results_io.py`)
 
 `render-html` rebuilds `GenomeResult`s from `genome_status.tsv` (all genomes) + `genome_ko_hits.tsv` (hits) +
-`ko_config_used.tsv` (or `-c`). `run_info.json` is optional.
+`ko_config_used.tsv` (or `-c`). `run_info.json` is optional; `genome_taxonomy.tsv` is optional (tree).
 **When renaming columns or files, change both the writer and the reader** (`CliTest` checks the round trip).
 `genome_ko_matrix.tsv` / `ko_summary.tsv` are for users and are not read back.
 
@@ -80,7 +99,9 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 - No external scripts, CSS, fonts or fetch. The report must open from `file://` by double-clicking.
 - Payload: `columns` (configuration rows that have a KO, in display order), `genomes` (**only genomes with hits**;
   `hits: {KO: [[gene, score, threshold, evalue, significant], …]}`), `genomesWithoutHits` (count),
-  `excluded`, `undetectable`, `i18n` (UI strings).
+  `excluded`, `undetectable`, `i18n` (UI strings), `taxonomy` (null, or `{ranks, nodes}` with nodes
+  `[name, rank index, taxid, parent index]`; each genome then also carries `tax` = its species node, `org` and `taxid`).
+  Nodes are identified by `(parent, taxid)`; placeholders have empty name and taxid and are shared under the same parent.
 
 ### UI strings (i18n)
 
@@ -109,6 +130,24 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 - Colours are CSS custom properties (light / dark), cached by `css()` and used on the canvas.
   Check dark mode after changing colours. The page reloads when the colour scheme changes.
 
+### Taxonomy tree
+
+- Built once at start-up: children sorted by name (placeholders last), pre-order DFS gives `taxPos` (row order) and `tPre`.
+- `layoutTree(order)` runs in `recompute()` whenever the tree is on: every clade is a contiguous row range
+  `[tFirst, tLast]`; a node's centre is the midpoint of its first and last visible children (like `d3.cluster`).
+  Filtering therefore prunes the tree automatically.
+- Layout on the left: phylum names (`TREE_LABEL_W`), tree (`TREE_W`, one step per rank, domain stub like the viewer),
+  then genome IDs / KO counts, then the matrix. Alternating phylum bands span the whole width; a line separates domains.
+  Rank names are written vertically in the header.
+- **Link opacity depends on on-screen density, per rank**: each rank is one path with alpha = average node spacing / 3px
+  (capped at 1, at least 0.2 when drawn), and ranks below 0.08 are skipped. In the overview this drops species and genus
+  and fades family; at 12px rows every rank is fully drawn. Genome leaf links are drawn only in the detail view.
+  A fixed fade does not work: a single canvas path is composited once, so ~15,000 species links in 700px still render as a
+  solid grey block at any constant alpha.
+- Hit-testing in the tree area: rank = `ceil((x − tree origin) / TREE_STEP)` (the segment between rank ticks d−1 and d leads
+  to the node at rank d, as in the viewer); the phylum label column counts as phylum. The hovered / pinned path is drawn bold.
+- Measured with 18,242 genomes: load ~155 ms; tree layout + overview draw ~13 ms; detail / overview switch ~20 ms.
+
 ### Tooltips
 
 - Row and column are **computed from coordinates** (`bodyTarget()` / `headTarget()`); no per-cell elements or listeners.
@@ -131,7 +170,7 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 ## Verifying changes
 
 ```bash
-python3 -m unittest                                   # 26 tests, no network
+python3 -m unittest                                   # 30 tests, no network
 python3 -m ko_detector scan -i data/examples -c config/ko_config.tsv -o <scratch dir>
 python3 -m ko_detector render-html -i data/results/refseq_reference_genomes -o <scratch dir>
 ```

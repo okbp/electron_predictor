@@ -16,16 +16,21 @@ from .models import GenomeResult, KoEntry
 from .reference import read_config, read_references, searchable_kos, write_config
 from .results_io import (
     CONFIG_COPY_FILE,
+    GENOME_TAXONOMY_FILE,
+    read_genome_taxonomy,
     read_results,
     read_run_info,
     write_scan_outputs,
 )
 from .summary import KoSummary, summarize
+from .taxonomy import GenomeTaxonomy, load_genome_taxonomy, taxonomy_available
 
 logger = logging.getLogger("ko_detector")
 
 # scan writes to <DEFAULT_RESULTS_DIR>/<input directory name> when -o is omitted.
 DEFAULT_RESULTS_DIR = Path("data") / "results"
+# Taxonomy downloaded by scripts/setup_taxonomy.py; used for the tree when present.
+DEFAULT_TAXONOMY_DIR = Path("data") / "taxonomy"
 
 
 def _load_entries(config: Optional[Path], references: Optional[List[Path]]) -> List[KoEntry]:
@@ -59,6 +64,27 @@ def _report_titles(args: argparse.Namespace) -> Dict[str, str]:
     return {lang: title for lang, title in titles.items() if title}
 
 
+def _taxonomy_dir(args: argparse.Namespace) -> Optional[Path]:
+    if args.no_taxonomy:
+        return None
+    if args.taxonomy_dir is not None:
+        if not taxonomy_available(args.taxonomy_dir):
+            raise ValueError(f"taxonomy data not found in {args.taxonomy_dir} (run scripts/setup_taxonomy.py)")
+        return args.taxonomy_dir
+    if taxonomy_available(DEFAULT_TAXONOMY_DIR):
+        return DEFAULT_TAXONOMY_DIR
+    logger.info("no taxonomy data in %s; reports are written without the tree", DEFAULT_TAXONOMY_DIR)
+    return None
+
+
+def _load_taxonomy(args: argparse.Namespace, results: Sequence[GenomeResult]) -> Optional[Dict[str, GenomeTaxonomy]]:
+    directory = _taxonomy_dir(args)
+    if directory is None:
+        return None
+    logger.info("reading taxonomy from %s", directory)
+    return load_genome_taxonomy(directory, [result.genome_id for result in results if result.is_valid])
+
+
 def cmd_build_config(args: argparse.Namespace) -> int:
     entries = read_references(args.reference)
     write_config(entries, args.output, comments=[f"generated from: {', '.join(map(str, args.reference))}"])
@@ -86,6 +112,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
         return 1
 
     summaries = summarize(entries, results)
+    taxonomy = _load_taxonomy(args, results)
     run_info = {
         "tool": f"ko_detector {__version__}",
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -94,12 +121,13 @@ def cmd_scan(args: argparse.Namespace) -> int:
         "significant_only": args.significant_only,
         "config": str(args.config) if args.config else None,
         "reference": [str(path) for path in args.reference] if args.reference else None,
+        "taxonomy": taxonomy is not None,
         "n_genome_dirs": len(results),
         "n_genomes_analysed": sum(result.is_valid for result in results),
     }
-    paths = write_scan_outputs(args.output_dir, entries, results, summaries, run_info)
+    paths = write_scan_outputs(args.output_dir, entries, results, summaries, run_info, taxonomy)
     if not args.no_html:
-        reports = write_reports(args.output_dir, entries, results, run_info, _report_titles(args))
+        reports = write_reports(args.output_dir, entries, results, run_info, _report_titles(args), taxonomy)
         paths.update({path.name: path for path in reports.values()})
 
     _print_summary(results, summaries, sys.stdout)
@@ -112,8 +140,15 @@ def cmd_render_html(args: argparse.Namespace) -> int:
     config = args.config or args.results_dir / CONFIG_COPY_FILE
     entries = read_config(config)
     results = read_results(args.results_dir)
+    taxonomy_file = args.results_dir / GENOME_TAXONOMY_FILE
+    if not args.no_taxonomy and args.taxonomy_dir is None and taxonomy_file.is_file():
+        taxonomy = read_genome_taxonomy(taxonomy_file)
+    else:
+        taxonomy = _load_taxonomy(args, results)
     output_dir = args.output_dir or args.results_dir
-    reports = write_reports(output_dir, entries, results, read_run_info(args.results_dir), _report_titles(args))
+    reports = write_reports(
+        output_dir, entries, results, read_run_info(args.results_dir), _report_titles(args), taxonomy
+    )
     for path in reports.values():
         print(f"Wrote {path}")
     return 0
@@ -122,6 +157,12 @@ def cmd_render_html(args: argparse.Namespace) -> int:
 def _add_title_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--title", help=f"title of the Japanese report ({REPORT_FILES['ja']})")
     parser.add_argument("--title-en", help=f"title of the English report ({REPORT_FILES['en']})")
+
+
+def _add_taxonomy_arguments(parser: argparse.ArgumentParser, default_help: str) -> None:
+    parser.add_argument("--taxonomy-dir", type=Path,
+                        help=f"NCBI taxonomy directory for the tree (default: {default_help})")
+    parser.add_argument("--no-taxonomy", action="store_true", help="do not add the taxonomy tree")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -156,6 +197,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--significant-only", action="store_true",
                    help="count only rows marked '*' (default: every row counts as present)")
     p.add_argument("--no-html", action="store_true", help=f"do not write {' / '.join(REPORT_FILES.values())}")
+    _add_taxonomy_arguments(p, f"{DEFAULT_TAXONOMY_DIR} when present")
     _add_title_arguments(p)
     p.set_defaults(func=cmd_scan)
 
@@ -164,6 +206,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-c", "--config", type=Path, help=f"KO configuration (default: <results-dir>/{CONFIG_COPY_FILE})")
     p.add_argument("-o", "--output-dir", type=Path,
                    help=f"directory for {' / '.join(REPORT_FILES.values())} (default: <results-dir>)")
+    _add_taxonomy_arguments(p, f"<results-dir>/{GENOME_TAXONOMY_FILE}, else {DEFAULT_TAXONOMY_DIR} when present")
     _add_title_arguments(p)
     p.set_defaults(func=cmd_render_html)
     return parser

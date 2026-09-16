@@ -12,6 +12,7 @@
     --hairline: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
     --hit: #16805f; --weak: #8fcdb5; --empty: rgba(11,11,11,0.05);
     --bar: #6f9f8b; --zero: #c9c7bf; --cross: rgba(42,120,214,0.16);
+    --link: #a9a8a1; --band: rgba(11,11,11,0.035);
     --accent: #2a78d6; --pin: #e34948;
   }
   @media (prefers-color-scheme: dark) {
@@ -22,6 +23,7 @@
       --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
       --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
       --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
+      --link: #6b6a66; --band: rgba(255,255,255,0.045);
       --accent: #3987e5; --pin: #e66767;
     }
   }
@@ -32,6 +34,7 @@
     --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
     --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
     --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
+    --link: #6b6a66; --band: rgba(255,255,255,0.045);
     --accent: #3987e5; --pin: #e66767;
   }
 
@@ -76,8 +79,8 @@
   .seg button { border-radius: 0; }
   .seg button:first-child { border-radius: 6px 0 0 6px; }
   .seg button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
-  .seg button[aria-pressed="true"] { background: var(--text); color: var(--panel); border-color: var(--text); }
-  input[type="search"] { width: 16em; max-width: 60vw; }
+  .seg button[aria-pressed="true"], #tax-sort[aria-pressed="true"] { background: var(--text); color: var(--panel); border-color: var(--text); }
+  input[type="search"] { width: 18em; max-width: 60vw; }
   .hint { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
   .badge:not(:empty) {
     display: inline-block; min-width: 15px; margin-left: 4px; padding: 0 4px; border-radius: 999px;
@@ -156,6 +159,7 @@
     <div class="pop" id="about-box" role="dialog" hidden>
       <p data-i18n="aboutMatrix"></p>
       <p data-i18n="aboutAggregate"></p>
+      <p id="about-tree" data-i18n="aboutTree"></p>
       <p data-i18n="aboutOps"></p>
       <p class="meta" id="meta"></p>
       <p class="caveat" data-i18n="aboutCaveat"></p>
@@ -181,6 +185,7 @@
     <button type="button" id="zoom-out" data-i18n-aria="zoomOut">−</button>
     <span class="hint" id="row-info"></span>
   </div>
+  <button type="button" id="tax-sort" aria-pressed="false" data-i18n="taxSort" data-i18n-title="taxSortTitle" hidden></button>
   <div class="group">
     <input type="search" id="query" autocomplete="off" data-i18n-placeholder="searchPlaceholder" data-i18n-aria="searchPlaceholder">
     <span class="hint" id="count"></span>
@@ -213,9 +218,11 @@
 <script id="report-data" type="application/json">__REPORT_DATA__</script>
 <script>
 // Genome x KO matrix drawn on canvas so that tens of thousands of genomes fit on one page.
-// Only the visible rows are drawn. When a row would be thinner than 1px ("fit" view), each
-// screen pixel row summarises the genomes it covers (colour opacity = fraction carrying the KO).
-// Row / column under the cursor are computed from coordinates, so there are no per-cell elements.
+// Only the visible rows are drawn. When a row would be thinner than 1px (overview), each screen
+// pixel row summarises the genomes it covers (colour opacity = fraction carrying the KO).
+// With taxonomy data, rows follow the NCBI classification and a cladogram is drawn on the left
+// (no distances; branch lengths are meaningless). Row, column and rank under the cursor are
+// computed from coordinates, so there are no per-cell or per-branch elements.
 (function () {
   'use strict';
   var DATA = JSON.parse(document.getElementById('report-data').textContent);
@@ -223,14 +230,16 @@
   // ---- geometry ----------------------------------------------------------------
   var CELL = 10, CELL_GAP = 2, GROUP_GAP = 8, PAD = 10;
   var LABEL_W = 128, COUNT_W = 46;
+  var TREE_LABEL_W = 104, TREE_W = 236, TREE_STUB = 8, TREE_PAD = 8;
   var HEAD_GROUP = 30, HEAD_GENE = 15, HEAD_KO = 46, HEAD_COUNT = 16;
   var HEADER_H = HEAD_GROUP + HEAD_GENE + HEAD_KO + HEAD_COUNT;
   var ROW_STEPS = [1, 2, 3, 4, 6, 8, 12, 16];
   var LABEL_MIN_PX = 10;     // genome IDs are drawn from this row height
   var MAX_FIT_ROW = 16;
-  var CLICK_ZOOM_PX = 12;    // row height after clicking in the fit view
+  var CLICK_ZOOM_PX = 12;    // row height after clicking in the overview
   var MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
   var SANS = 'system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif';
+  var TAXON_URL = 'https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=';
 
   // ---- helpers -----------------------------------------------------------------
   var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -261,9 +270,7 @@
   DATA.columns.forEach(function (c) { c.k = kIndex[c.ko]; });
   // levels[genome * K + ko]: 0 = absent, 1 = below-threshold hits only, 2 = significant hit
   var levels = new Uint8Array(N * K);
-  var idLower = new Array(N);
   DATA.genomes.forEach(function (g, gi) {
-    idLower[gi] = g.id.toLowerCase();
     Object.keys(g.hits).forEach(function (ko) {
       var k = kIndex[ko];
       if (k === undefined) return;
@@ -272,14 +279,75 @@
   });
   var GROUPS = unique(DATA.columns.map(function (c) { return c.group; }));
 
-  var state = { query: '', groups: new Set(), sigOnly: false, hideEmpty: false, sortKey: 'id', sortDir: 1, rowPx: null };
+  // ---- taxonomy tree (optional) --------------------------------------------------
+  // nodes: [name, rank index, taxid, parent index]; every genome hangs below a species-rank node.
+  var TAX = DATA.taxonomy && DATA.taxonomy.nodes.length ? DATA.taxonomy : null;
+  var HAS_TREE = !!TAX;
+  var DEFAULT_SORT = HAS_TREE ? 'tax' : 'id';
+  var LEAF_DEPTH = HAS_TREE ? TAX.ranks.length : 1;
+  var TREE_STEP = (TREE_W - TREE_STUB - TREE_PAD) / LEAF_DEPTH;
+  var M = HAS_TREE ? TAX.nodes.length : 0;
+  var tParent = new Int32Array(M), tRank = new Uint8Array(M), tPre = new Int32Array(M);
+  var tFirst = new Int32Array(M), tLast = new Int32Array(M), tY = new Float64Array(M);
+  var tChildren = [], tGenomes = [], taxPos = new Int32Array(N);
+  var tVis = [], tPhyla = [], tDomains = [];
+
+  function depthX(d) { return TREE_LABEL_W + TREE_STUB + d * TREE_STEP; }
+  function nodeName(m) { return TAX.nodes[m][0] || t('unclassified', { rank: TAX.ranks[tRank[m]] }); }
+  function ancestors(m) { var out = []; for (; m >= 0; m = tParent[m]) out.push(m); return out.reverse(); }
+  function nodeAtRank(gi, rank) { var m = DATA.genomes[gi].tax; while (m >= 0 && tRank[m] > rank) m = tParent[m]; return m; }
+  function lineageText(m, minRank, maxRank) {
+    return ancestors(m).filter(function (x) { return tRank[x] >= minRank && tRank[x] <= maxRank; }).map(nodeName).join(' › ');
+  }
+
+  if (HAS_TREE) {
+    (function buildTree() {
+      var roots = [], m, c;
+      for (m = 0; m < M; m++) {
+        tParent[m] = TAX.nodes[m][3];
+        tRank[m] = TAX.nodes[m][1];
+        tChildren.push([]);
+        tGenomes.push([]);
+      }
+      for (m = 0; m < M; m++) { if (tParent[m] < 0) roots.push(m); else tChildren[tParent[m]].push(m); }
+      DATA.genomes.forEach(function (g, gi) { if (g.tax >= 0) tGenomes[g.tax].push(gi); });
+      // Alphabetical like the autotrophic_genomes viewer; unclassified placeholders last.
+      function byName(a, b) {
+        var na = TAX.nodes[a][0], nb = TAX.nodes[b][0];
+        if (!na !== !nb) return na ? -1 : 1;
+        return na < nb ? -1 : na > nb ? 1 : 0;
+      }
+      roots.sort(byName);
+      tChildren.forEach(function (list) { list.sort(byName); });
+      var stack = roots.slice().reverse(), k = 0, pos = 0;
+      while (stack.length) {
+        m = stack.pop();
+        tPre[k++] = m;
+        for (c = 0; c < tGenomes[m].length; c++) taxPos[tGenomes[m][c]] = pos++;
+        for (c = tChildren[m].length - 1; c >= 0; c--) stack.push(tChildren[m][c]);
+      }
+    })();
+  }
+
+  var searchText = DATA.genomes.map(function (g) {
+    var parts = [g.id, g.org || ''];
+    if (HAS_TREE) for (var m = g.tax; m >= 0; m = tParent[m]) if (tRank[m] >= 1) parts.push(TAX.nodes[m][0]);
+    return parts.join(' ').toLowerCase();
+  });
+
+  var state = {
+    query: '', groups: new Set(), sigOnly: false, hideEmpty: false,
+    sortKey: DEFAULT_SORT, sortDir: 1, rowPx: null
+  };
   function lv(gi, k) {
     var v = levels[gi * K + k];
     return v === 1 && state.sigOnly ? 0 : v;
   }
 
   // ---- derived view (recomputed when filters or sorting change) -----------------
-  var view = { cols: [], matrixW: 0, visK: [], order: [], counts: new Uint16Array(N), colCounts: [], maxCount: 1 };
+  var view = {
+    cols: [], matrixW: 0, visK: [], order: [], counts: new Uint16Array(N), colCounts: [], maxCount: 1, treeOn: false
+  };
 
   function recompute() {
     var cols = state.groups.size
@@ -302,12 +370,14 @@
       for (var j = 0; j < view.visK.length; j++) if (lv(gi, view.visK[j])) n++;
       view.counts[gi] = n;
       if (state.hideEmpty && !n) continue;
-      if (tokens.length && !tokens.some(function (tok) { return idLower[gi].indexOf(tok) !== -1; })) continue;
+      if (tokens.length && !tokens.every(function (tok) { return searchText[gi].indexOf(tok) !== -1; })) continue;
       order.push(gi);
       if (n > maxCount) maxCount = n;
     }
     var dir = state.sortDir, counts = view.counts;
-    if (state.sortKey === 'count') {
+    if (state.sortKey === 'tax') {
+      order.sort(function (a, b) { return taxPos[a] - taxPos[b]; });
+    } else if (state.sortKey === 'count') {
       order.sort(function (a, b) { return dir * (counts[b] - counts[a]) || a - b; });
     } else if (state.sortKey.indexOf('ko:') === 0) {
       var k = kIndex[state.sortKey.slice(3)];
@@ -322,15 +392,54 @@
       for (var i = 0; i < order.length; i++) if (lv(order[i], c.k)) m++;
       return m;
     });
+    view.treeOn = HAS_TREE && state.sortKey === 'tax';
+    if (view.treeOn) layoutTree(order);
   }
+
+  // Rows are in taxonomic order, so every clade occupies a contiguous run of rows [tFirst, tLast].
+  // A node sits halfway between its first and last visible child (like d3.cluster).
+  function layoutTree(order) {
+    var i, k, m, c;
+    tFirst.fill(-1);
+    tLast.fill(-1);
+    for (i = 0; i < order.length; i++) {
+      for (m = DATA.genomes[order[i]].tax; m >= 0; m = tParent[m]) {
+        if (tFirst[m] < 0) tFirst[m] = i;
+        tLast[m] = i;
+      }
+    }
+    for (k = M - 1; k >= 0; k--) {   // reverse pre-order: children before parents
+      m = tPre[k];
+      if (tFirst[m] < 0) continue;
+      var kids = tChildren[m], lo = -1, hi = -1;
+      for (c = 0; c < kids.length; c++) {
+        if (tFirst[kids[c]] < 0) continue;
+        if (lo < 0) lo = kids[c];
+        hi = kids[c];
+      }
+      tY[m] = lo < 0 ? (tFirst[m] + tLast[m]) / 2 + 0.5 : (tY[lo] + tY[hi]) / 2;
+    }
+    tVis = []; tPhyla = []; tDomains = [];
+    tVisByRank = [];
+    for (k = 0; k < LEAF_DEPTH; k++) tVisByRank.push([]);
+    for (k = 0; k < M; k++) {
+      m = tPre[k];
+      if (tFirst[m] < 0) continue;
+      tVis.push(m);
+      tVisByRank[tRank[m]].push(m);
+      if (tRank[m] === 0) tDomains.push(m);
+      if (tRank[m] === 1) tPhyla.push(m);
+    }
+  }
+  var tVisByRank = [];
 
   // ---- canvas setup ------------------------------------------------------------
   var stage = $('stage'), scroller = $('scroller'), sizer = $('sizer');
   var headCanvas = $('head'), bodyCanvas = $('body');
   var headCtx = headCanvas.getContext('2d'), bodyCtx = bodyCanvas.getContext('2d');
-  var G = null;                           // geometry of the last render
-  var hover = { row: -1, col: -1 };       // row = index in view.order (or pixel bin in fit view)
-  var pinned = null;                      // { gi, col }
+  var G = null;                                   // geometry of the last render
+  var hover = { row: -1, col: -1, rank: -1 };     // row = index in view.order (or pixel bin in the overview)
+  var pinned = null;                              // { gi, col, rank }
 
   function sizeCanvas(canvas, ctx, w, h, top) {
     var dpr = window.devicePixelRatio || 1;
@@ -351,16 +460,23 @@
     var rowPx = state.rowPx == null ? (n ? Math.min(MAX_FIT_ROW, viewH / n) : MAX_FIT_ROW) : state.rowPx;
     var agg = rowPx < 1;
     var labels = rowPx >= LABEL_MIN_PX;
+    var treeW = view.treeOn ? TREE_LABEL_W + TREE_W : 0;
     var gutterW = (labels ? LABEL_W : 0) + COUNT_W;
     return {
-      W: W, bodyH: bodyH, viewH: viewH, n: n, rowPx: rowPx, agg: agg, labels: labels, gutterW: gutterW,
-      x0: gutterW + PAD, bins: Math.max(1, Math.floor(viewH)),
+      W: W, bodyH: bodyH, viewH: viewH, n: n, rowPx: rowPx, agg: agg, labels: labels,
+      treeW: treeW, gutterX: treeW, gutterW: gutterW, fixedW: treeW + gutterW, x0: treeW + gutterW + PAD,
+      bins: Math.max(1, Math.floor(viewH)),
       contentH: agg ? Math.floor(viewH) : n * rowPx,
       st: scroller.scrollTop, sl: scroller.scrollLeft
     };
   }
 
-  // Genome-index range covered by pixel bin p in the fit view.
+  // Screen y of a position given in row units (row i spans [i, i + 1)).
+  function yOf(g, rows) { return g.agg ? rows * g.bins / g.n : rows * g.rowPx - g.st; }
+  function visibleRows(g) {
+    return [Math.max(0, Math.floor(g.st / g.rowPx)), Math.min(g.n, Math.ceil((g.st + g.viewH) / g.rowPx))];
+  }
+  // Genome-index range covered by pixel bin p in the overview.
   function binRange(g, p) {
     var i0 = Math.floor(p * g.n / g.bins);
     return [i0, Math.min(g.n, Math.max(i0 + 1, Math.floor((p + 1) * g.n / g.bins)))];
@@ -417,26 +533,36 @@
     $('view-detail').setAttribute('aria-pressed', String(!overview));
   }
 
+  // Alternating phylum bands, drawn in a horizontal slice [x, x + w).
+  function drawBands(ctx, g, x, w) {
+    ctx.fillStyle = css('--band');
+    for (var i = 1; i < tPhyla.length; i += 2) {
+      var m = tPhyla[i], y0 = yOf(g, tFirst[m]), y1 = yOf(g, tLast[m] + 1);
+      if (y1 < 0 || y0 > g.viewH) continue;
+      ctx.fillRect(x, y0, w, Math.max(1, y1 - y0));
+    }
+  }
+
   function drawBody(g) {
     var ctx = bodyCtx, cols = view.cols, order = view.order;
     var xOff = g.x0 - g.sl;
     var visH = Math.max(0, Math.min(g.viewH, g.contentH - g.st));
     ctx.fillStyle = css('--panel');
     ctx.fillRect(0, 0, g.W, g.bodyH);
-    ctx.fillStyle = css('--empty');
-    cols.forEach(function (c) { ctx.fillRect(xOff + c.x, 0, CELL, visH); });
-
     if (!g.n) {
       ctx.fillStyle = css('--muted');
       ctx.font = '12px ' + SANS;
       ctx.textBaseline = 'top';
-      ctx.fillText(t('emptyRows'), g.x0, 12);
+      ctx.textAlign = 'left';
+      ctx.fillText(t('emptyRows'), 12, 12);
       return;
     }
-    var hit = css('--hit'), weak = css('--weak'), bar = css('--bar');
-    var barX = (g.labels ? LABEL_W : 0) + 6, barMax = COUNT_W - 14;
-    var p, i, ci, r;
+    if (view.treeOn) drawBands(ctx, g, g.fixedW, g.W - g.fixedW);
+    ctx.fillStyle = css('--empty');
+    cols.forEach(function (c) { ctx.fillRect(xOff + c.x, 0, CELL, visH); });
 
+    var hit = css('--hit'), weak = css('--weak');
+    var p, i, ci, r;
     if (g.agg) {
       for (p = 0; p < g.bins; p++) {
         r = binRange(g, p);
@@ -455,12 +581,11 @@
       }
       ctx.globalAlpha = 1;
     } else {
-      var first = Math.max(0, Math.floor(g.st / g.rowPx));
-      var last = Math.min(g.n, Math.ceil((g.st + g.viewH) / g.rowPx));
+      var vr = visibleRows(g);
       var h = Math.max(1, Math.round(g.rowPx >= 4 ? g.rowPx - 1 : g.rowPx));
       [2, 1].forEach(function (pass) {
         ctx.fillStyle = pass === 2 ? hit : weak;
-        for (var i2 = first; i2 < last; i2++) {
+        for (var i2 = vr[0]; i2 < vr[1]; i2++) {
           var y = Math.round(i2 * g.rowPx - g.st), gi = order[i2];
           for (var c2 = 0; c2 < cols.length; c2++) {
             if (lv(gi, cols[c2].k) === pass) ctx.fillRect(xOff + cols[c2].x, y, CELL, h);
@@ -474,41 +599,22 @@
       ctx.fillRect(xOff + cols[hover.col].x - 1, 0, CELL + 2, visH);
     }
 
-    // Fixed gutter: genome IDs (when rows are tall enough) and a bar for the number of KOs.
+    // Fixed block on the left: tree, genome IDs and KO counts.
     ctx.fillStyle = css('--panel');
-    ctx.fillRect(0, 0, g.gutterW, g.bodyH);
+    ctx.fillRect(0, 0, g.fixedW, g.bodyH);
+    if (view.treeOn) {
+      drawBands(ctx, g, 0, g.fixedW);
+      drawTree(ctx, g);
+    }
     ctx.fillStyle = css('--hairline');
-    ctx.fillRect(g.gutterW - 1, 0, 1, g.bodyH);
-    ctx.fillStyle = bar;
-    if (g.agg) {
-      for (p = 0; p < g.bins; p++) {
-        r = binRange(g, p);
-        var sum = 0;
-        for (i = r[0]; i < r[1]; i++) sum += view.counts[order[i]];
-        ctx.fillRect(barX, p, Math.max(0.5, barMax * sum / (r[1] - r[0]) / view.maxCount), 1);
-      }
-    } else {
-      var f = Math.max(0, Math.floor(g.st / g.rowPx));
-      var l = Math.min(g.n, Math.ceil((g.st + g.viewH) / g.rowPx));
-      var bh = Math.max(1, Math.round(g.rowPx >= 4 ? g.rowPx - 1 : g.rowPx));
-      ctx.globalAlpha = g.labels ? 0.35 : 1;
-      for (i = f; i < l; i++) {
-        ctx.fillRect(barX, Math.round(i * g.rowPx - g.st), Math.max(0.5, barMax * view.counts[order[i]] / view.maxCount), bh);
-      }
-      ctx.globalAlpha = 1;
-      if (g.labels) {
-        ctx.textBaseline = 'middle';
-        ctx.font = '10.5px ' + MONO;
-        for (i = f; i < l; i++) {
-          var yy = Math.round(i * g.rowPx - g.st) + g.rowPx / 2;
-          ctx.fillStyle = css('--text');
-          ctx.textAlign = 'left';
-          ctx.fillText(DATA.genomes[order[i]].id, 8, yy);
-          ctx.fillStyle = css('--text2');
-          ctx.textAlign = 'right';
-          ctx.fillText(String(view.counts[order[i]]), g.gutterW - 6, yy);
-        }
-        ctx.textAlign = 'left';
+    ctx.fillRect(g.fixedW - 1, 0, 1, g.bodyH);
+    drawGutter(ctx, g);
+
+    if (view.treeOn) {
+      ctx.fillStyle = css('--text2');
+      for (i = 1; i < tDomains.length; i++) {
+        var yd = Math.round(yOf(g, tFirst[tDomains[i]]));
+        if (yd > 0 && yd < g.viewH) ctx.fillRect(0, yd, g.W, 1);
       }
     }
 
@@ -531,6 +637,156 @@
     }
   }
 
+  function drawGutter(ctx, g) {
+    var order = view.order, i, p, r;
+    var barX = g.gutterX + (g.labels ? LABEL_W : 0) + 6, barMax = COUNT_W - 14;
+    ctx.fillStyle = css('--bar');
+    if (g.agg) {
+      for (p = 0; p < g.bins; p++) {
+        r = binRange(g, p);
+        var sum = 0;
+        for (i = r[0]; i < r[1]; i++) sum += view.counts[order[i]];
+        ctx.fillRect(barX, p, Math.max(0.5, barMax * sum / (r[1] - r[0]) / view.maxCount), 1);
+      }
+      return;
+    }
+    var vr = visibleRows(g);
+    var bh = Math.max(1, Math.round(g.rowPx >= 4 ? g.rowPx - 1 : g.rowPx));
+    ctx.globalAlpha = g.labels ? 0.35 : 1;
+    for (i = vr[0]; i < vr[1]; i++) {
+      ctx.fillRect(barX, Math.round(i * g.rowPx - g.st), Math.max(0.5, barMax * view.counts[order[i]] / view.maxCount), bh);
+    }
+    ctx.globalAlpha = 1;
+    if (!g.labels) return;
+    ctx.textBaseline = 'middle';
+    ctx.font = '10.5px ' + MONO;
+    for (i = vr[0]; i < vr[1]; i++) {
+      var y = Math.round(i * g.rowPx - g.st) + g.rowPx / 2;
+      ctx.fillStyle = css('--text');
+      ctx.textAlign = 'left';
+      ctx.fillText(DATA.genomes[order[i]].id, g.gutterX + 8, y);
+      ctx.fillStyle = css('--text2');
+      ctx.textAlign = 'right';
+      ctx.fillText(String(view.counts[order[i]]), g.fixedW - 6, y);
+    }
+    ctx.textAlign = 'left';
+  }
+
+  // Node (and genome row) to highlight in the tree: the hovered or pinned position.
+  function treeFocus(g) {
+    var row, rank;
+    if (pinned) {
+      row = view.order.indexOf(pinned.gi);
+      rank = pinned.rank;
+      if (row < 0) return null;
+    } else {
+      if (hover.row < 0) return null;
+      row = hover.row;
+      rank = hover.rank;
+    }
+    var inBin = g.agg && !pinned;
+    var gi = view.order[inBin ? binRange(g, row)[0] : row];
+    if (rank >= 0) return { node: nodeAtRank(gi, rank), row: -1 };
+    return { node: DATA.genomes[gi].tax, row: g.agg ? -1 : row };
+  }
+
+  function drawTree(ctx, g) {
+    var H = g.viewH, i, m, p, x, y, xp, yp;
+    var xs = depthX(LEAF_DEPTH - 1), xl = depthX(LEAF_DEPTH);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(TREE_LABEL_W - 2, 0, TREE_W + 2, H);
+    ctx.clip();
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = css('--link');
+
+    // Elbow links: parent position -> vertical to the child -> horizontal to the child's rank.
+    // Each rank is one path whose opacity follows how densely its nodes are packed on screen
+    // (average spacing / 3px). Thousands of genus / species links in a few hundred pixels would
+    // otherwise merge into a solid block; ranks too dense to read are skipped in the overview.
+    var contentH = g.agg ? g.bins : g.n * g.rowPx;
+    tVisByRank.forEach(function (nodes, rank) {
+      var alpha = Math.min(1, contentH / Math.max(1, nodes.length) / 3);
+      if (!nodes.length || alpha < 0.08) return;
+      ctx.globalAlpha = Math.max(0.2, alpha);
+      ctx.beginPath();
+      for (var j = 0; j < nodes.length; j++) {
+        var n = nodes[j];
+        var yy = yOf(g, tY[n]), xx = depthX(rank), pp = tParent[n];
+        if (pp < 0) {
+          if (yy > -2 && yy < H + 2) { ctx.moveTo(xx - TREE_STUB, yy); ctx.lineTo(xx, yy); }
+          continue;
+        }
+        var ypp = yOf(g, tY[pp]);
+        if ((yy < -2 && ypp < -2) || (yy > H + 2 && ypp > H + 2)) continue;
+        var xpp = depthX(tRank[pp]);
+        ctx.moveTo(xpp, ypp);
+        ctx.lineTo(xpp, yy);
+        ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+    });
+
+    // Genome leaves, in the detail view only (in the overview they would be a solid block).
+    if (!g.agg) {
+      ctx.globalAlpha = Math.max(0.3, Math.min(1, g.rowPx / 3));
+      ctx.beginPath();
+      var vr = visibleRows(g);
+      for (i = vr[0]; i < vr[1]; i++) {
+        m = DATA.genomes[view.order[i]].tax;
+        ctx.moveTo(xs, yOf(g, tY[m]));
+        ctx.lineTo(xs, yOf(g, i + 0.5));
+        ctx.lineTo(xl, yOf(g, i + 0.5));
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    var focus = treeFocus(g);
+    if (focus && focus.node >= 0) {
+      ctx.strokeStyle = css('--text');
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (focus.row >= 0) {
+        ctx.moveTo(xs, yOf(g, tY[focus.node]));
+        ctx.lineTo(xs, yOf(g, focus.row + 0.5));
+        ctx.lineTo(xl, yOf(g, focus.row + 0.5));
+      }
+      for (m = focus.node; m >= 0; m = tParent[m]) {
+        p = tParent[m];
+        y = yOf(g, tY[m]);
+        x = depthX(tRank[m]);
+        if (p < 0) { ctx.moveTo(x - TREE_STUB, y); ctx.lineTo(x, y); continue; }
+        xp = depthX(tRank[p]);
+        ctx.moveTo(xp, yOf(g, tY[p]));
+        ctx.lineTo(xp, y);
+        ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Phylum names where the band is tall enough.
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    for (i = 0; i < tPhyla.length; i++) {
+      m = tPhyla[i];
+      var top = Math.max(0, yOf(g, tFirst[m])), bot = Math.min(H, yOf(g, tLast[m] + 1));
+      if (bot - top < 11) continue;
+      var mid = (top + bot) / 2, tall = bot - top >= 26;
+      ctx.font = '10px ' + SANS;
+      ctx.fillStyle = css('--text');
+      ctx.fillText(fitted(ctx, nodeName(m), TREE_LABEL_W - 14), 8, tall ? mid - 6 : mid);
+      if (tall) {
+        ctx.font = '9.5px ' + SANS;
+        ctx.fillStyle = css('--muted');
+        ctx.fillText(t('tipBinGenomes', { n: fmt(tLast[m] - tFirst[m] + 1) }), 8, mid + 6);
+      }
+    }
+    ctx.fillStyle = css('--hairline');
+    ctx.fillRect(g.treeW - 1, 0, 1, H);
+  }
+
   function drawHead(g) {
     var ctx = headCtx, cols = view.cols;
     var xOff = g.x0 - g.sl;
@@ -541,7 +797,7 @@
 
     ctx.save();
     ctx.beginPath();
-    ctx.rect(g.gutterW, 0, g.W - g.gutterW, HEADER_H);
+    ctx.rect(g.fixedW, 0, g.W - g.fixedW, HEADER_H);
     ctx.clip();
     if (hover.col >= 0 && cols[hover.col]) {
       ctx.fillStyle = css('--cross');
@@ -551,6 +807,7 @@
     // Functional groups: two staggered rows so that narrow groups can borrow width from the next one.
     var groups = runs(cols, function (c) { return c.group; });
     ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
     ctx.font = '600 10px ' + SANS;
     groups.forEach(function (r, i) {
       var x = xOff + cols[r.start].x, x1 = xOff + cols[r.end].x + CELL;
@@ -598,20 +855,35 @@
     });
     ctx.restore();
 
-    // Gutter header (sort controls).
+    // Fixed block header: rank labels over the tree, sort controls over the gutter.
     ctx.fillStyle = css('--head');
-    ctx.fillRect(0, 0, g.gutterW, HEADER_H - 1);
+    ctx.fillRect(0, 0, g.fixedW, HEADER_H - 1);
     ctx.fillStyle = css('--hairline');
-    ctx.fillRect(g.gutterW - 1, 0, 1, HEADER_H);
+    ctx.fillRect(g.fixedW - 1, 0, 1, HEADER_H);
+    if (view.treeOn) {
+      ctx.font = '9.5px ' + SANS;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = css('--muted');
+      for (var d = 0; d <= LEAF_DEPTH; d++) {
+        ctx.save();
+        ctx.translate(depthX(d), HEADER_H - 5);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(d < LEAF_DEPTH ? TAX.ranks[d] : t('rankGenome'), 0, 0);
+        ctx.restore();
+      }
+      ctx.fillStyle = css('--hairline');
+      ctx.fillRect(g.treeW - 1, 0, 1, HEADER_H);
+    }
     ctx.font = '600 10.5px ' + SANS;
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = css('--text2');
     if (g.labels) {
       ctx.textAlign = 'left';
-      ctx.fillText(t('headGenome') + sortMark('id'), 8, HEADER_H - 7);
+      ctx.fillText(t('headGenome') + sortMark('id'), g.gutterX + 8, HEADER_H - 7);
     }
     ctx.textAlign = 'right';
-    ctx.fillText(t('headKoCount') + sortMark('count'), g.gutterW - 6, HEADER_H - 7);
+    ctx.fillText(t('headKoCount') + sortMark('count'), g.fixedW - 6, HEADER_H - 7);
     ctx.textAlign = 'left';
   }
 
@@ -638,6 +910,10 @@
     tip.style.top = Math.max(4, y) + 'px';
   }
 
+  function link(href, label) {
+    return '<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + esc(label) + ' ↗</a>';
+  }
+
   function hitLines(hits) {
     return hits.map(function (h) {
       return '<div class="hit' + (h[4] ? '' : ' below') + '">'
@@ -651,10 +927,23 @@
       + '<div class="sub">' + esc(c.group) + ' · ' + esc(t('tipSubstrate', { v: c.substrate })) + '</div>';
   }
 
+  function tipHtml(g, target, isPinned) {
+    if (target.rank >= 0) {
+      var gi = view.order[g.agg ? binRange(g, target.row)[0] : target.row];
+      return nodeTip(nodeAtRank(gi, target.rank), gi, isPinned, g.agg);
+    }
+    return g.agg ? binTip(g, target.row, target.col) : genomeTip(view.order[target.row], target.col, isPinned);
+  }
+
   function genomeTip(gi, col, isPinned) {
     var genome = DATA.genomes[gi], cols = view.cols;
     var html = '<div class="head"><b class="mono">' + esc(genome.id) + '</b><span class="n">'
       + esc(t('tipKoCount', { n: view.counts[gi], total: view.visK.length })) + '</span></div>';
+    if (genome.org) html += '<div>' + esc(genome.org) + '</div>';
+    if (HAS_TREE) {
+      html += '<div class="sub">' + esc(lineageText(genome.tax, 1, LEAF_DEPTH - 2))
+        + (genome.taxid ? ' · ' + esc(t('tipTaxid', { v: genome.taxid })) : '') + '</div>';
+    }
     var c = col >= 0 ? cols[col] : null;
     if (c) {
       var hits = (genome.hits[c.ko] || []).filter(function (h) { return !state.sigOnly || h[4]; });
@@ -669,19 +958,35 @@
         if (!v || seen[x.ko]) continue;
         seen[x.ko] = true;
         chips.push('<span class="kc"><i class="' + (v === 2 ? 's' : 'w') + '"></i>'
-          + esc(shortName(x.gene)) + ' <span class="mono">' + esc(x.ko) + '</span></span>');
+          + esc(shortName(x.gene)) + '<span class="mono">' + esc(x.ko) + '</span></span>');
       }
       if (chips.length) byGroup.push('<dt>' + esc(r.key) + '</dt><dd>' + chips.join('') + '</dd>');
     });
     html += byGroup.length ? '<dl>' + byGroup.join('') + '</dl>' : '<div class="sub">' + esc(t('tipNoKos')) + '</div>';
     if (isPinned) {
-      html += '<div class="links"><a href="https://www.ncbi.nlm.nih.gov/datasets/genome/' + encodeURIComponent(genome.id)
-        + '/" target="_blank" rel="noopener noreferrer">' + esc(t('linkGenome')) + ' ↗</a>';
-      if (c) {
-        html += '<a href="https://www.kegg.jp/entry/' + encodeURIComponent(c.ko)
-          + '" target="_blank" rel="noopener noreferrer">' + esc(t('linkKo', { ko: c.ko })) + ' ↗</a>';
-      }
+      html += '<div class="links">' + link('https://www.ncbi.nlm.nih.gov/datasets/genome/' + encodeURIComponent(genome.id) + '/', t('linkGenome'));
+      if (genome.taxid) html += link(TAXON_URL + encodeURIComponent(genome.taxid), t('linkTaxonomy'));
+      if (c) html += link('https://www.kegg.jp/entry/' + encodeURIComponent(c.ko), t('linkKo', { ko: c.ko }));
       html += '</div>';
+    } else {
+      html += '<div class="hint">' + esc(t('tipPinHint')) + '</div>';
+    }
+    return html;
+  }
+
+  // Taxon at the rank under the cursor (tree area), e.g. "Aquificales (order) 21 genomes".
+  function nodeTip(m, gi, isPinned, inBin) {
+    var genome = DATA.genomes[gi];
+    var html = '<div class="head"><b>' + esc(nodeName(m)) + '</b><span class="n">' + esc(TAX.ranks[tRank[m]]) + ' · '
+      + esc(t('tipBinGenomes', { n: fmt(tLast[m] - tFirst[m] + 1) })) + '</span></div>';
+    var up = lineageText(tParent[m], 0, LEAF_DEPTH);
+    if (up) html += '<div class="sub">' + esc(up) + '</div>';
+    if (!inBin) html += '<div class="focus">' + esc(t('tipThisRow', { v: genome.id + (genome.org ? ' ' + genome.org : '') })) + '</div>';
+    var taxid = TAX.nodes[m][2];
+    if (isPinned) {
+      if (taxid) html += '<div class="links">' + link(TAXON_URL + encodeURIComponent(taxid), t('linkTaxonomy')) + '</div>';
+    } else if (inBin) {
+      html += '<div class="hint">' + esc(t('tipBinHint')) + '</div>';
     } else {
       html += '<div class="hint">' + esc(t('tipPinHint')) + '</div>';
     }
@@ -743,21 +1048,27 @@
     return -1;
   }
 
-  // Cell under the pointer in the matrix area, or null (scrollbars, empty space).
+  // Row / column / tree rank under the pointer, or null (scrollbars, empty space).
   function bodyTarget(ev) {
     var g = G, rect = scroller.getBoundingClientRect();
     var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
     if (!g || !g.n || mx >= scroller.clientWidth || my >= scroller.clientHeight) return null;
-    var col = mx < g.gutterW ? -1 : colAtX(mx - g.x0 + g.sl);
     var row = g.agg ? Math.floor(my) : Math.floor((my + g.st) / g.rowPx);
     if (row < 0 || row >= (g.agg ? g.bins : g.n)) return null;
-    return { row: row, col: col };
+    if (mx < g.treeW) {
+      // The horizontal segment between rank ticks d-1 and d leads to the node at rank d.
+      var rank = mx < TREE_LABEL_W ? 1
+        : Math.max(0, Math.min(LEAF_DEPTH, Math.ceil((mx - TREE_LABEL_W - TREE_STUB) / TREE_STEP)));
+      return { row: row, col: -1, rank: rank >= LEAF_DEPTH ? -1 : rank };
+    }
+    return { row: row, col: mx < g.fixedW ? -1 : colAtX(mx - g.x0 + g.sl), rank: -1 };
   }
 
-  function setHover(row, col) {
-    if (hover.row === row && hover.col === col) return false;
+  function setHover(row, col, rank) {
+    if (hover.row === row && hover.col === col && hover.rank === rank) return false;
     hover.row = row;
     hover.col = col;
+    hover.rank = rank;
     schedule();
     return true;
   }
@@ -765,33 +1076,35 @@
   scroller.addEventListener('mousemove', function (ev) {
     if (pinned) return;
     var target = bodyTarget(ev);
-    if (!target) { setHover(-1, -1); hideTip(); return; }
-    if (setHover(target.row, target.col) || tip.style.opacity !== '1') {
-      showTip(G.agg ? binTip(G, target.row, target.col) : genomeTip(view.order[target.row], target.col, false), false);
+    if (!target) { setHover(-1, -1, -1); hideTip(); return; }
+    if (setHover(target.row, target.col, target.rank) || tip.style.opacity !== '1') {
+      showTip(tipHtml(G, target, false), false);
     }
     moveTip(ev);
   });
   scroller.addEventListener('mouseleave', function () {
     if (pinned) return;
-    setHover(-1, -1);
+    setHover(-1, -1, -1);
     hideTip();
   });
   scroller.addEventListener('scroll', function () {
-    if (!pinned) { setHover(-1, -1); hideTip(); }
+    if (!pinned) { setHover(-1, -1, -1); hideTip(); }
     schedule();
   });
   scroller.addEventListener('click', function (ev) {
     var target = bodyTarget(ev);
     if (G && G.agg) {
       if (!target) return;
-      // Fit view: zoom in around the clicked position.
+      // Overview: open the detail view around the clicked position.
       zoomTo(lastDetail.px, binRange(G, target.row)[0]);
       return;
     }
-    if (!target || (pinned && pinned.gi === view.order[target.row] && pinned.col === target.col)) { unpin(); return; }
-    pinned = { gi: view.order[target.row], col: target.col };
-    setHover(target.row, target.col);
-    showTip(genomeTip(pinned.gi, pinned.col, true), true);
+    if (!target) { unpin(); return; }
+    var gi = view.order[target.row];
+    if (pinned && pinned.gi === gi && pinned.col === target.col && pinned.rank === target.rank) { unpin(); return; }
+    pinned = { gi: gi, col: target.col, rank: target.rank };
+    setHover(target.row, target.col, target.rank);
+    showTip(tipHtml(G, target, true), true);
     moveTip(ev);
     schedule();
   });
@@ -801,7 +1114,7 @@
     pinned = null;
     tip.classList.remove('pinned');
     tip.style.opacity = 0;
-    setHover(-1, -1);
+    setHover(-1, -1, -1);
     schedule();
   }
   tip.addEventListener('click', function (ev) { if (ev.target.closest('.close')) unpin(); });
@@ -811,8 +1124,8 @@
   function headTarget(ev) {
     var g = G, rect = headCanvas.getBoundingClientRect();
     var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
-    if (!g) return null;
-    if (mx < g.gutterW) return { area: g.labels && mx < LABEL_W ? 'id' : 'count' };
+    if (!g || mx < g.treeW) return null;
+    if (mx < g.fixedW) return { area: g.labels && mx < g.gutterX + LABEL_W ? 'id' : 'count' };
     var col = colAtX(mx - g.x0 + g.sl);
     if (col < 0) return null;
     return { area: my < HEAD_GROUP ? 'group' : my < HEAD_GROUP + HEAD_GENE ? 'gene' : 'ko', col: col };
@@ -822,8 +1135,8 @@
     if (pinned) return;
     var target = headTarget(ev);
     headCanvas.style.cursor = target && target.area !== 'group' && target.area !== 'gene' ? 'pointer' : 'default';
-    if (!target) { setHover(-1, -1); hideTip(); return; }
-    setHover(-1, target.col == null ? -1 : target.col);
+    if (!target) { setHover(-1, -1, -1); hideTip(); return; }
+    setHover(-1, target.col == null ? -1 : target.col, -1);
     var html = target.area === 'id' ? esc(t('sortHintGenome'))
       : target.area === 'count' ? esc(t('sortHintCount'))
       : target.area === 'group' ? groupTip(target.col)
@@ -834,7 +1147,7 @@
   });
   headCanvas.addEventListener('mouseleave', function () {
     if (pinned) return;
-    setHover(-1, -1);
+    setHover(-1, -1, -1);
     hideTip();
   });
   headCanvas.addEventListener('click', function (ev) {
@@ -843,7 +1156,7 @@
     var key = target.area === 'ko' ? 'ko:' + view.cols[target.col].ko : target.area;
     if (state.sortKey !== key) { state.sortKey = key; state.sortDir = 1; }
     else if (state.sortDir > 0) state.sortDir = -1;
-    else { state.sortKey = 'id'; state.sortDir = 1; }
+    else { state.sortKey = DEFAULT_SORT; state.sortDir = 1; }
     scroller.scrollTop = 0;   // show the top of the new order
     update();
   });
@@ -902,6 +1215,7 @@
     $('count').textContent = n === N ? t('countAll', { n: fmt(N) }) : t('countFiltered', { n: fmt(n), total: fmt(N) });
     $('export-n').textContent = fmt(n);
     $('export').title = t('exportTitle', { n: fmt(n) });
+    $('tax-sort').setAttribute('aria-pressed', String(state.sortKey === 'tax'));
     var nSel = state.groups.size + (state.sigOnly ? 1 : 0) + (state.hideEmpty ? 1 : 0);
     $('badge').textContent = nSel ? String(nSel) : '';
     Array.prototype.forEach.call($('groups').children, function (b) {
@@ -925,6 +1239,12 @@
   if (DATA.significantOnly) $('sig-only').disabled = true;
   $('sig-only').addEventListener('change', function (ev) { state.sigOnly = ev.target.checked; update(); });
   $('hide-empty').addEventListener('change', function (ev) { state.hideEmpty = ev.target.checked; update(); });
+  $('tax-sort').addEventListener('click', function () {
+    state.sortKey = 'tax';
+    state.sortDir = 1;
+    scroller.scrollTop = 0;
+    update();
+  });
   var timer = null;
   $('query').addEventListener('input', function (ev) {
     clearTimeout(timer);
@@ -938,9 +1258,19 @@
   });
   $('export').addEventListener('click', function () {
     var cols = view.cols;
-    var lines = [['genome_id', 'n_kos'].concat(cols.map(function (c) { return c.ko + ' ' + shortName(c.gene); })).join('\t')];
+    var clean = function (s) { return String(s == null ? '' : s).replace(/[\t\r\n]+/g, ' '); };
+    var taxHeader = HAS_TREE ? ['organism_name'].concat(TAX.ranks) : [];
+    var lines = [['genome_id'].concat(taxHeader, ['n_kos'], cols.map(function (c) { return c.ko + ' ' + shortName(c.gene); })).join('\t')];
     view.order.forEach(function (gi) {
-      lines.push([DATA.genomes[gi].id, view.counts[gi]].concat(cols.map(function (c) { return lv(gi, c.k) ? 1 : 0; })).join('\t'));
+      var genome = DATA.genomes[gi], taxCols = [];
+      if (HAS_TREE) {
+        taxCols.push(clean(genome.org));
+        for (var r = 0; r < LEAF_DEPTH; r++) {
+          var m = nodeAtRank(gi, r);
+          taxCols.push(m >= 0 && tRank[m] === r ? clean(TAX.nodes[m][0]) : '');
+        }
+      }
+      lines.push([genome.id].concat(taxCols, [view.counts[gi]], cols.map(function (c) { return lv(gi, c.k) ? 1 : 0; })).join('\t'));
     });
     // BOM so that Excel opens the file as UTF-8.
     var url = URL.createObjectURL(new Blob(['﻿' + lines.join('\n') + '\n'], { type: 'text/tab-separated-values;charset=utf-8' }));
@@ -989,6 +1319,8 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-title]'), function (node) {
       node.title = t(node.getAttribute('data-i18n-title'));
     });
+    $('tax-sort').hidden = !HAS_TREE;
+    $('about-tree').hidden = !HAS_TREE;
     $('stats').textContent = t('statSummary', {
       analysed: fmt(N + DATA.genomesWithoutHits), shown: fmt(N), hidden: fmt(DATA.genomesWithoutHits), kos: K
     });

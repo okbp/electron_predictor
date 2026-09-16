@@ -120,7 +120,8 @@ class CliTest(unittest.TestCase):
             stdout = io.StringIO()
             with contextlib.redirect_stdout(stdout), self.assertLogs("ko_detector", "WARNING"):
                 self.assertEqual(
-                    main(["scan", "-i", str(root / "in"), "-o", str(out), "-c", str(config), "--title-en", "My report"]),
+                    main(["scan", "-i", str(root / "in"), "-o", str(out), "-c", str(config), "--title-en", "My report",
+                          "--no-taxonomy"]),
                     0,
                 )
             self.assertIn("Genomes: 1 analysed, 1 excluded", stdout.getvalue())
@@ -155,6 +156,6 @@ class CliTest(unittest.TestCase):
 
             rendered = root / "rendered"
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(main(["render-html", "-i", str(out), "-o", str(rendered)]), 0)
+                self.assertEqual(main(["render-html", "-i", str(out), "-o", str(rendered), "--no-taxonomy"]), 0)
             self.assertEqual(sorted(p.name for p in rendered.iterdir()), ["report.html", "report_en.html"])
             self.assertIn("GCF_000000001.1", (rendered / "report_en.html").read_text(encoding="utf-8"))

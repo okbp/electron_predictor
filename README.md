@@ -11,6 +11,9 @@ annotated with KofamScan. It outputs per-KO genome counts and an HTML report you
 ## Quick start
 
 ```bash
+# 0. (once, optional) Download NCBI taxonomy for the taxonomy tree — see "Setup" below
+python3 scripts/setup_taxonomy.py
+
 # 1. Build the KO configuration from the reference table (first time, and whenever the reference changes)
 python3 -m ko_detector build-config \
     -r config/chemolithoautotroph_donor_acceptor_KO_reference.tsv \
@@ -26,7 +29,7 @@ python3 -m ko_detector scan \
 open data/results/refseq_reference_genomes/report.html
 ```
 
-Scanning the 23,434 RefSeq genomes takes about 50 seconds.
+Scanning the 23,434 RefSeq genomes takes about 50 seconds, plus about 5 seconds to read the taxonomy.
 
 ## Input
 
@@ -88,6 +91,8 @@ Lines starting with `#` are comments.
 | `--pattern` | KofamScan file glob (default `*.kolist_gene.tsv`) |
 | `--significant-only` | count only rows marked `*` |
 | `--no-html` | do not write the HTML reports |
+| `--taxonomy-dir` | NCBI taxonomy for the tree (default `data/taxonomy` when present) |
+| `--no-taxonomy` | do not resolve lineages; reports have no tree |
 | `--title` / `--title-en` | title of the Japanese / English report |
 | `-v, --verbose` | show progress |
 
@@ -100,6 +105,8 @@ When finished, the number of genomes carrying each KO is printed to standard out
 | `-i, --results-dir` | output directory of a scan (required) |
 | `-c, --config` | KO configuration (default `<results-dir>/ko_config_used.tsv`) |
 | `-o, --output-dir` | where to write the reports (default `<results-dir>`) |
+| `--taxonomy-dir` | read lineages from this taxonomy directory (default: `<results-dir>/genome_taxonomy.tsv`, else `data/taxonomy` when present) |
+| `--no-taxonomy` | reports without the tree |
 | `--title` / `--title-en` | report titles |
 
 ## Output
@@ -111,6 +118,7 @@ When finished, the number of genomes carrying each KO is printed to standard out
 | `genome_ko_matrix.tsv` | genome × KO gene counts (0 = absent); complexes get one column per KO |
 | `genome_ko_hits.tsv` | hit details (gene ID, score, threshold, E-value, significant) |
 | `genome_status.tsv` | per-genome status (`ok` / `multiple_files` / `no_file` / `error`) |
+| `genome_taxonomy.tsv` | organism name and lineage (domain … species, with taxids) per genome; only when taxonomy was available |
 | `ko_config_used.tsv` | copy of the KO configuration used for the scan |
 | `run_info.json` | run date, input and options |
 
@@ -120,17 +128,24 @@ When finished, the number of genomes carrying each KO is printed to standard out
 **To view the report, `report.html` alone is enough.**
 To rebuild it with `render-html` you need `genome_status.tsv`, `genome_ko_hits.tsv` and `ko_config_used.tsv`
 (the last one is not needed if you pass a configuration with `-c`); `run_info.json` is optional.
+For the taxonomy tree it also uses `genome_taxonomy.tsv`; without that file it reads `data/taxonomy` again, and without either the report has no tree.
 
 ## Using the HTML report
 
+- **Taxonomy tree** (when taxonomy is available): rows follow the NCBI classification and a cladogram
+  (domain → phylum → class → order → family → genus → species; branch lengths have no meaning) is drawn on the left,
+  with phylum names and alternating phylum bands across the matrix. Hover a branch or a phylum name to see the taxon
+  at that rank, its genome count and lineage; pin it to open NCBI Taxonomy. Missing ranks appear as "unclassified <rank>"
 - **Overview / Detail**: Overview shows every genome on one screen. Several genomes share each screen pixel, and colour strength shows the share carrying the KO.
   Detail shows one row per genome, with genome IDs once rows are 10px or taller. Switching back to Detail returns to where you left off
 - **+ / −**: change the row height (1–16px). Clicking in the overview opens the detail view at that position
 - **Tooltips**: hover a cell to see the genome, the KO, its hit genes (score / threshold / E-value) and every KO the genome carries.
   Click to pin the tooltip and open NCBI Datasets / KEGG links (× or Esc to close).
   Hover a heading to see the KO description, how many genomes carry it, and caveats
-- **Sorting**: click a KO heading to list genomes carrying that KO first, or "KOs" to sort by number of KOs
-- **Filters**: genome ID search, functional groups (which columns are shown), excluding below-threshold hits
+- **Sorting**: click a KO heading to list genomes carrying that KO first, or "KOs" to sort by number of KOs.
+  The tree is hidden while sorted this way; the "Taxonomy tree" button returns to taxonomic order
+- **Filters**: search by genome ID, organism or taxon name (e.g. `Aquificota`), functional groups (which columns are shown),
+  excluding below-threshold hits. The tree is pruned to the remaining genomes
 - **⇩ TSV**: save the listed genomes × visible columns as 0/1 (with a BOM for Excel)
 - "Items without KO", "Excluded genomes" and "About" at the top open on mouse-over
 
@@ -146,6 +161,7 @@ Colours: dark green = present (above threshold), light green = below-threshold h
 ## Setup: NCBI taxonomy
 
 Downloads NCBI `new_taxdump` and `assembly_summary_refseq.txt` into `data/taxonomy/` (standard library only).
+`scan` and `render-html` use them to draw the taxonomy tree; without them the report is drawn without the tree.
 
 ```bash
 python3 scripts/setup_taxonomy.py                 # fetch whatever is missing (~400 MB, a few minutes)
@@ -179,6 +195,7 @@ electron_predictor/
 │   ├── reference.py      # reference parsing, configuration read/write
 │   ├── kofam.py          # GCF directory discovery, kolist_gene.tsv reading
 │   ├── summary.py        # per-KO counts
+│   ├── taxonomy.py       # genome lineages from NCBI taxonomy
 │   ├── results_io.py     # result TSVs: write and read back
 │   ├── html_report.py    # HTML report generation
 │   ├── models.py
