@@ -8,6 +8,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
+from .electron_db import ElectronRecord
 from .models import GenomeResult, KoEntry
 from .taxonomy import TAXONOMY_RANKS, GenomeTaxonomy
 
@@ -50,6 +51,29 @@ def _attach_taxonomy(genomes: List[Dict[str, object]], taxonomy: Dict[str, Genom
     return {"ranks": list(TAXONOMY_RANKS), "nodes": nodes}
 
 
+def _attach_electron(genomes: List[Dict[str, object]], electron: Dict[str, List[ElectronRecord]]) -> Dict[str, object]:
+    """Categories seen among the listed genomes, and ``el`` records on each genome found in the database.
+
+    ``el`` entries are ``[role, category index, compound, consensus, confidence]``; a genome without ``el``
+    is not in the database at all.
+    """
+    categories: Dict[str, List[str]] = {"donor": [], "acceptor": []}
+    index: Dict[Tuple[str, str], int] = {}
+    for genome in genomes:
+        records = electron.get(str(genome["id"]))
+        if records is None:
+            continue
+        entries = []
+        for record in records:
+            key = (record.role, record.category)
+            if key not in index:
+                index[key] = len(categories[record.role])
+                categories[record.role].append(record.category)
+            entries.append([record.role, index[key], record.compound, record.consensus, record.confidence])
+        genome["el"] = entries
+    return {"categories": categories}
+
+
 def build_payload(
     entries: Sequence[KoEntry],
     results: Sequence[GenomeResult],
@@ -57,6 +81,7 @@ def build_payload(
     title: Optional[str] = None,
     run_info: Optional[Dict[str, object]] = None,
     taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
+    electron: Optional[Dict[str, List[ElectronRecord]]] = None,
 ) -> Dict[str, object]:
     run_info = run_info or {}
     messages = load_messages(lang)
@@ -117,6 +142,7 @@ def build_payload(
         "excluded": excluded,
         "undetectable": undetectable,
         "taxonomy": _attach_taxonomy(genomes, taxonomy) if taxonomy is not None else None,
+        "electron": _attach_electron(genomes, electron) if electron is not None else None,
     }
 
 
@@ -144,11 +170,12 @@ def write_reports(
     run_info: Optional[Dict[str, object]] = None,
     titles: Optional[Dict[str, str]] = None,
     taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
+    electron: Optional[Dict[str, List[ElectronRecord]]] = None,
 ) -> Dict[str, Path]:
     """Write one report per language; ``titles`` overrides the default title per language."""
     titles = titles or {}
     paths: Dict[str, Path] = {}
     for lang, filename in REPORT_FILES.items():
         paths[lang] = output_dir / filename
-        write_html(paths[lang], build_payload(entries, results, lang, titles.get(lang), run_info, taxonomy))
+        write_html(paths[lang], build_payload(entries, results, lang, titles.get(lang), run_info, taxonomy, electron))
     return paths

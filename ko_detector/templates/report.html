@@ -87,6 +87,8 @@
   /* Section toggles: green for donors, orange for acceptors. Filled = expanded, outlined = collapsed. */
   #role-toggles button[data-role="donor"] { --role-btn: var(--btn-don); }
   #role-toggles button[data-role="acceptor"] { --role-btn: var(--btn-acc); }
+  #role-toggles button[data-role="donor_category"] { --role-btn: var(--btn-don); }
+  #role-toggles button[data-role="acceptor_category"] { --role-btn: var(--btn-acc); }
   #role-toggles button { position: relative; font-weight: 600; color: var(--role-btn); border-color: var(--role-btn); }
   #role-toggles button:first-child { z-index: 1; }
   #role-toggles button[aria-pressed="true"] { background: var(--role-btn); border-color: var(--role-btn); color: var(--panel); }
@@ -144,6 +146,7 @@
   .tooltip .kc { display: inline-flex; align-items: center; margin-right: 7px; white-space: nowrap; }
   .tooltip .kc i { width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; }
   .tooltip .kc .mono { margin-left: 3px; color: var(--text2); }
+  .tooltip .kc.cc { white-space: normal; }   /* category names are long; let them wrap */
   .tooltip .kc i.s { background: var(--hit); }
   .tooltip .kc i.w { background: var(--weak); }
   .tooltip .kc i.sa { background: var(--hit-acc); }
@@ -173,6 +176,7 @@
     <div class="pop" id="about-box" role="dialog" hidden>
       <p data-i18n="aboutMatrix"></p>
       <p id="about-roles" data-i18n="aboutRoles"></p>
+      <p id="about-categories" data-i18n="aboutCategories"></p>
       <p data-i18n="aboutAggregate"></p>
       <p id="about-tree" data-i18n="aboutTree"></p>
       <p data-i18n="aboutOps"></p>
@@ -244,6 +248,62 @@
   'use strict';
   var DATA = JSON.parse(document.getElementById('report-data').textContent);
 
+  // ---- electron donor / acceptor categories (optional) -----------------------------
+  // From the curated database (genome_electron_categories.tsv). Each category becomes a column of a
+  // "<role>_category" section placed left of that role's KO section. Colours are the user's choice;
+  // they are matched by keyword so that renamed or new categories still get a sensible colour.
+  var CATEGORY_PALETTE = {             // [light, dark]
+    sky: ['#2f9fd8', '#5cc0f0'],       // 水色
+    copper: ['#b0643a', '#d68f62'],    // 銅色
+    orange: ['#ee8a14', '#f5a347'],    // オレンジ
+    yellow: ['#e2b400', '#e9c94a'],    // 黄色
+    navy: ['#1f3a8a', '#7b95ea'],      // 紺色
+    scarlet: ['#d8352a', '#f0665a'],   // 緋色
+    teal: ['#119c8c', '#35c4b2'],      // 青緑色
+    grey: ['#9a988f', '#7c7a73']       // Other (no colour specified)
+  };
+  // [keyword, palette, short column label]; order = column order (user's order); '' matches anything (Other).
+  // Keywords are checked top-down; none of them is a substring of another category's name
+  // ("sulfur" is not part of "sulfate", "iron" is not part of "denitrifiers").
+  var CATEGORY_RULES = {
+    donor: [['sulfur', 'yellow', 'S'], ['ammonia', 'scarlet', 'NH3'], ['nitr', 'teal', 'NO2'], ['hydrogen', 'sky', 'H2'],
+      ['carbon', 'navy', 'CO'], ['iron', 'copper', 'Fe'], ['sulfate', 'orange', 'SO4'], ['', 'grey', null]],
+    acceptor: [['aerob', 'sky', 'O2'], ['nitrate', 'teal', 'NO3'], ['sulfate', 'orange', 'SO4'], ['sulfur', 'yellow', 'S0'],
+      ['methanogen', 'navy', 'CO2'], ['acetogen', 'navy', 'CO2'], ['iron', 'copper', 'Fe(III)'], ['', 'grey', null]]
+  };
+  var NODATA_COLOR = ['#cfcdc5', '#55534e'];
+  var EL = DATA.electron && (DATA.electron.categories.donor.length || DATA.electron.categories.acceptor.length) ? DATA.electron : null;
+
+  function categoryStyle(role, name) {
+    var rules = CATEGORY_RULES[role], lower = name.toLowerCase();
+    for (var i = 0; i < rules.length; i++) {
+      if (lower.indexOf(rules[i][0]) !== -1) return { rank: i, color: CATEGORY_PALETTE[rules[i][1]], label: rules[i][2] || name };
+    }
+  }
+
+  if (EL) {
+    (function addCategoryColumns() {
+      var sections = {};
+      ['donor', 'acceptor'].forEach(function (role) {
+        var group = role === 'donor' ? t('groupDonorCategory') : t('groupAcceptorCategory');
+        var base = { cat: true, catRole: role, role: role + '_category', group: group, substrate: '', shared: false };
+        var cols = EL.categories[role].map(function (name, index) {
+          var style = categoryStyle(role, name);
+          return Object.assign({}, base, { ko: 'cat:' + role + ':' + index, source: 'cat:' + role + ':' + index,
+            catIndex: index, gene: name, label: style.label, color: style.color, rank: style.rank });
+        }).sort(function (a, b) { return a.rank - b.rank || (a.gene < b.gene ? -1 : 1); });
+        cols.push(Object.assign({}, base, { ko: 'cat:' + role + ':nodata', source: 'cat:' + role + ':nodata', catIndex: -1,
+          nodata: true, gene: t('catNoDataFull'), label: t('catNoData'), color: NODATA_COLOR }));
+        sections[role] = cols;
+      });
+      var ordered = [];
+      ['donor', 'acceptor'].forEach(function (role) {
+        ordered = ordered.concat(sections[role], DATA.columns.filter(function (c) { return c.role === role; }));
+      });
+      DATA.columns = ordered.concat(DATA.columns.filter(function (c) { return c.role !== 'donor' && c.role !== 'acceptor'; }));
+    })();
+  }
+
   // ---- geometry ----------------------------------------------------------------
   var CELL = 10, CELL_GAP = 2, GROUP_GAP = 8, PAD = 10;
   var LABEL_W = 128, COUNT_W = 46;
@@ -278,6 +338,8 @@
     });
   }
   // CSS custom properties are read once; the page reloads when the colour scheme changes.
+  var DARK = document.documentElement.getAttribute('data-theme') === 'dark'
+    || (document.documentElement.getAttribute('data-theme') !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
   var cssCache = {};
   function css(name) {
     if (!(name in cssCache)) cssCache[name] = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -299,10 +361,35 @@
       levels[gi * K + k] = g.hits[ko].some(function (h) { return h[4]; }) ? 2 : 1;
     });
   });
+  // Category columns: 2 = consensus "used", 1 = only CONFLICTING, 0 = absent or not_used;
+  // the "no data" column is 2 for genomes the database does not list.
+  var isCatK = new Uint8Array(K);
+  var KO_COUNT = unique(DATA.columns.filter(function (c) { return !c.cat; }).map(function (c) { return c.ko; })).length;
+  if (EL) {
+    var catK = {};
+    DATA.columns.forEach(function (c) {
+      if (!c.cat) return;
+      isCatK[c.k] = 1;
+      catK[c.catRole + ':' + c.catIndex] = c.k;
+    });
+    DATA.genomes.forEach(function (g, gi) {
+      if (!g.el) {
+        levels[gi * K + catK['donor:-1']] = 2;
+        levels[gi * K + catK['acceptor:-1']] = 2;
+        return;
+      }
+      g.el.forEach(function (e) {
+        var k = catK[e[0] + ':' + e[1]];
+        var v = e[3] === 'used' ? 2 : e[3] === 'CONFLICTING' ? 1 : 0;
+        if (k !== undefined && v > levels[gi * K + k]) levels[gi * K + k] = v;
+      });
+    });
+  }
   var GROUPS = unique(DATA.columns.map(function (c) { return c.group; }));
   var ROLES = unique(DATA.columns.map(function (c) { return c.role || ''; }));
   function roleLabel(role) {
-    return role === 'donor' ? t('roleDonor') : role === 'acceptor' ? t('roleAcceptor') : t('roleOther');
+    return role === 'donor' ? t('roleDonor') : role === 'acceptor' ? t('roleAcceptor')
+      : role === 'donor_category' ? t('roleDonorCategory') : role === 'acceptor_category' ? t('roleAcceptorCategory') : t('roleOther');
   }
 
   // ---- taxonomy tree (optional) --------------------------------------------------
@@ -367,7 +454,7 @@
   };
   function lv(gi, k) {
     var v = levels[gi * K + k];
-    return v === 1 && state.sigOnly ? 0 : v;
+    return v === 1 && state.sigOnly && !isCatK[k] ? 0 : v;
   }
 
   // ---- derived view (recomputed when filters or sorting change) -----------------
@@ -402,7 +489,7 @@
     view.cols = cols;
     view.sections = sections;
     view.matrixW = x;
-    view.visK = unique(cols.map(function (c) { return c.k; }));
+    view.visK = unique(cols.filter(function (c) { return !c.cat; }).map(function (c) { return c.k; }));
 
     var tokens = state.query.toLowerCase().split(/[\s,]+/).filter(Boolean);
     var order = [], maxCount = 1;
@@ -604,7 +691,6 @@
     drawSections(ctx, xOff, 0, visH);
 
     // Donor columns green, acceptor columns orange.
-    var hit = css('--hit'), weak = css('--weak'), hitAcc = css('--hit-acc'), weakAcc = css('--weak-acc');
     var p, i, ci, r;
     if (g.agg) {
       for (p = 0; p < g.bins; p++) {
@@ -618,7 +704,7 @@
           }
           if (!s && !w) continue;
           ctx.globalAlpha = 0.18 + 0.82 * (s + 0.5 * w) / size;
-          ctx.fillStyle = cols[ci].role === 'acceptor' ? (s ? hitAcc : weakAcc) : (s ? hit : weak);
+          ctx.fillStyle = cellColor(cols[ci], s ? 2 : 1);
           ctx.fillRect(xOff + cols[ci].x, p, CELL, 1);
         }
       }
@@ -626,16 +712,18 @@
     } else {
       var vr = visibleRows(g);
       var h = Math.max(1, Math.round(g.rowPx >= 4 ? g.rowPx - 1 : g.rowPx));
-      [[2, false], [1, false], [2, true], [1, true]].forEach(function (p2) {
-        var pass = p2[0], acc = p2[1];
-        ctx.fillStyle = acc ? (pass === 2 ? hitAcc : weakAcc) : (pass === 2 ? hit : weak);
-        for (var i2 = vr[0]; i2 < vr[1]; i2++) {
-          var y = Math.round(i2 * g.rowPx - g.st), gi = order[i2];
-          for (var c2 = 0; c2 < cols.length; c2++) {
-            if ((cols[c2].role === 'acceptor') === acc && lv(gi, cols[c2].k) === pass) ctx.fillRect(xOff + cols[c2].x, y, CELL, h);
+      cols.forEach(function (c) {
+        var x = xOff + c.x;
+        if (x + CELL < g.fixedW || x > g.W) return;
+        [2, 1].forEach(function (pass) {
+          ctx.fillStyle = cellColor(c, pass);
+          ctx.globalAlpha = c.cat && pass === 1 ? 0.4 : 1;   // CONFLICTING-only categories are drawn faint
+          for (var i2 = vr[0]; i2 < vr[1]; i2++) {
+            if (lv(order[i2], c.k) === pass) ctx.fillRect(x, Math.round(i2 * g.rowPx - g.st), CELL, h);
           }
-        }
+        });
       });
+      ctx.globalAlpha = 1;
     }
 
     if (hover.col >= 0 && cols[hover.col]) {
@@ -679,6 +767,13 @@
       var pi = order.indexOf(pinned.gi);
       if (pi >= 0) rowBand(pi, css('--pin'), true);
     }
+  }
+
+  // Fill colour of a present cell (pass 2 = full, 1 = weak).
+  function cellColor(c, pass) {
+    if (c.cat) return c.color[DARK ? 1 : 0];
+    if (c.role === 'acceptor') return css(pass === 2 ? '--hit-acc' : '--weak-acc');
+    return css(pass === 2 ? '--hit' : '--weak');
   }
 
   // Collapsed-section stubs and the separator lines between sections.
@@ -897,7 +992,7 @@
       ctx.translate(xOff + c.x + CELL / 2, HEAD_ROLE + HEAD_GROUP + HEAD_GENE + HEAD_KO - 3);
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = state.sortKey === 'ko:' + c.ko ? css('--accent') : i === hover.col ? css('--text') : css('--text2');
-      ctx.fillText(c.ko + (c.shared ? '※' : ''), 0, 0);
+      ctx.fillText(c.cat ? c.label : c.ko + (c.shared ? '※' : ''), 0, 0);
       ctx.restore();
     });
 
@@ -907,7 +1002,7 @@
       var frac = g.n ? view.colCounts[i] / g.n : 0;
       if (frac > 0) {
         var h = Math.max(1, frac * maxH);
-        ctx.fillStyle = css(c.role === 'acceptor' ? '--bar-acc' : '--bar');
+        ctx.fillStyle = c.cat ? cellColor(c, 2) : css(c.role === 'acceptor' ? '--bar-acc' : '--bar');
         ctx.fillRect(xOff + c.x, base - h, CELL, h);
       } else {
         ctx.fillStyle = css('--zero');
@@ -1008,7 +1103,42 @@
     }).join('');
   }
 
+  // Category chips of a genome, one <dt>/<dd> pair per role.
+  function categoryRows(genome) {
+    if (!EL) return [];
+    return ['donor', 'acceptor'].map(function (role) {
+      var chips;
+      if (!genome.el) {
+        chips = '<span class="sub">' + esc(t('catNoDataFull')) + '</span>';
+      } else {
+        var best = {};
+        genome.el.forEach(function (e) {
+          if (e[0] !== role) return;
+          var v = e[3] === 'used' ? 2 : e[3] === 'CONFLICTING' ? 1 : 0;
+          best[e[1]] = Math.max(best[e[1]] || 0, v);
+        });
+        chips = DATA.columns.filter(function (c) { return c.cat && c.catRole === role && best[c.catIndex]; })
+          .map(function (c) {
+            return '<span class="kc cc"><i style="background:' + c.color[DARK ? 1 : 0] + (best[c.catIndex] === 1 ? ';opacity:.4' : '') + '"></i>'
+              + esc(c.gene) + '</span>';
+          }).join('') || '<span class="sub">' + esc(t('catNone')) + '</span>';
+      }
+      return '<dt>' + esc(roleLabel(role + '_category')) + '</dt><dd>' + chips + '</dd>';
+    });
+  }
+
+  function categoryRecords(genome, c) {
+    if (c.nodata) return '<div class="sub">' + esc(genome.el ? t('catInDb') : t('catNoDataFull')) + '</div>';
+    var records = (genome.el || []).filter(function (e) { return e[0] === c.catRole && e[1] === c.catIndex; });
+    if (!records.length) return '<div class="sub">' + esc(genome.el ? t('catAbsent') : t('catNoDataFull')) + '</div>';
+    return records.map(function (e) {
+      return '<div class="hit' + (e[3] === 'used' ? '' : ' below') + '">'
+        + esc(t('catRecord', { compound: e[2], consensus: e[3], grade: e[4] })) + '</div>';
+    }).join('');
+  }
+
   function columnDetails(c) {
+    if (c.cat) return '<div><b>' + esc(c.gene) + '</b></div><div class="sub">' + esc(roleLabel(c.role)) + '</div>';
     return '<div><b class="mono">' + esc(c.ko) + '</b> ' + esc(c.gene) + '</div>'
       + '<div class="sub">' + esc(c.group) + ' · ' + esc(t('tipSubstrate', { v: c.substrate })) + '</div>';
   }
@@ -1031,17 +1161,19 @@
         + (genome.taxid ? ' · ' + esc(t('tipTaxid', { v: genome.taxid })) : '') + '</div>';
     }
     var c = col >= 0 ? cols[col] : null;
-    if (c) {
+    if (c && c.cat) {
+      html += '<div class="focus">' + columnDetails(c) + categoryRecords(genome, c) + '</div>';
+    } else if (c) {
       var hits = (genome.hits[c.ko] || []).filter(function (h) { return !state.sigOnly || h[4]; });
       html += '<div class="focus">' + columnDetails(c)
         + (hits.length ? hitLines(hits) : '<div class="sub">' + esc(t('tipAbsent')) + '</div>') + '</div>';
     }
-    var byGroup = [];
+    var byGroup = categoryRows(genome);
     runs(cols, function (x) { return x.group; }).forEach(function (r) {
       var seen = {}, chips = [];
       for (var i = r.start; i <= r.end; i++) {
         var x = cols[i], v = lv(gi, x.k);
-        if (!v || seen[x.ko]) continue;
+        if (x.cat || !v || seen[x.ko]) continue;
         seen[x.ko] = true;
         chips.push('<span class="kc"><i class="' + (v === 2 ? 's' : 'w') + (x.role === 'acceptor' ? 'a' : '') + '"></i>'
           + esc(shortName(x.gene)) + '<span class="mono">' + esc(x.ko) + '</span></span>');
@@ -1052,7 +1184,7 @@
     if (isPinned) {
       html += '<div class="links">' + link('https://www.ncbi.nlm.nih.gov/datasets/genome/' + encodeURIComponent(genome.id) + '/', t('linkGenome'));
       if (genome.taxid) html += link(TAXON_URL + encodeURIComponent(genome.taxid), t('linkTaxonomy'));
-      if (c) html += link('https://www.kegg.jp/entry/' + encodeURIComponent(c.ko), t('linkKo', { ko: c.ko }));
+      if (c && !c.cat) html += link('https://www.kegg.jp/entry/' + encodeURIComponent(c.ko), t('linkKo', { ko: c.ko }));
       html += '</div>';
     } else {
       html += '<div class="hint">' + esc(t('tipPinHint')) + '</div>';
@@ -1096,6 +1228,11 @@
 
   function columnTip(col) {
     var c = view.cols[col];
+    if (c.cat) {
+      return columnDetails(c)
+        + '<div class="focus">' + esc(t('tipCategoryCount', { n: fmt(view.colCounts[col]), total: fmt(view.order.length) })) + '</div>'
+        + '<div class="hint">' + esc(t('catSortHint')) + '</div>';
+    }
     var html = columnDetails(c);
     if (c.priority) html += '<div class="sub">' + esc(t('tipPriority', { v: c.priority })) + '</div>';
     if (c.tool) html += '<div class="sub">' + esc(t('tipTool', { v: c.tool })) + '</div>';
@@ -1135,6 +1272,7 @@
 
   function geneTip(col) {
     var c = view.cols[col];
+    if (c.cat) return columnTip(col);
     var kos = view.cols.filter(function (x) { return x.source === c.source && x.group === c.group; })
       .map(function (x) { return x.ko; });
     var html = '<div><b>' + esc(c.gene) + '</b></div><div class="sub">' + esc(c.group) + ' · '
@@ -1383,7 +1521,9 @@
     var cols = view.cols;
     var clean = function (s) { return String(s == null ? '' : s).replace(/[\t\r\n]+/g, ' '); };
     var taxHeader = HAS_TREE ? ['organism_name'].concat(TAX.ranks) : [];
-    var lines = [['genome_id'].concat(taxHeader, ['n_kos'], cols.map(function (c) { return c.ko + ' ' + shortName(c.gene); })).join('\t')];
+    var lines = [['genome_id'].concat(taxHeader, ['n_kos'], cols.map(function (c) {
+      return c.cat ? roleLabel(c.role) + ': ' + clean(c.gene) : c.ko + ' ' + shortName(c.gene);
+    })).join('\t')];
     view.order.forEach(function (gi) {
       var genome = DATA.genomes[gi], taxCols = [];
       if (HAS_TREE) {
@@ -1455,9 +1595,10 @@
     $('role-toggles').hidden = !HAS_ROLES;
     Array.prototype.forEach.call(document.querySelectorAll('.role-only'), function (node) { node.hidden = !HAS_ROLES; });
     $('about-roles').hidden = !HAS_ROLES;
+    $('about-categories').hidden = !EL;
     $('about-tree').hidden = !HAS_TREE;
     $('stats').textContent = t('statSummary', {
-      analysed: fmt(N + DATA.genomesWithoutHits), shown: fmt(N), hidden: fmt(DATA.genomesWithoutHits), kos: K
+      analysed: fmt(N + DATA.genomesWithoutHits), shown: fmt(N), hidden: fmt(DATA.genomesWithoutHits), kos: KO_COUNT
     });
     var meta = [];
     if (DATA.generated) meta.push(t('metaGenerated', { v: DATA.generated }));

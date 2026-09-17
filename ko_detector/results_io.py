@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence
 
+from .electron_db import ElectronRecord
 from .models import GenomeResult, Hit, KoEntry
 from .reference import entries_by_ko, join_unique, searchable_kos, write_config
 from .summary import KoSummary
@@ -18,6 +19,7 @@ MATRIX_FILE = "genome_ko_matrix.tsv"
 SUMMARY_FILE = "ko_summary.tsv"
 CONFIG_COPY_FILE = "ko_config_used.tsv"
 GENOME_TAXONOMY_FILE = "genome_taxonomy.tsv"
+ELECTRON_CATEGORIES_FILE = "genome_electron_categories.tsv"
 RUN_INFO_FILE = "run_info.json"
 
 STATUS_COLUMNS = ("genome_id", "status", "n_rows", "n_target_kos", "n_hits", "files", "message")
@@ -47,6 +49,7 @@ SUMMARY_COLUMNS = (
 TAXONOMY_COLUMNS = ("genome_id", "taxid", "organism_name") + tuple(
     column for rank in TAXONOMY_RANKS for column in (rank, f"{rank}_taxid")
 )
+ELECTRON_COLUMNS = ("genome_id", "role", "category", "compound", "consensus", "confidence")
 FILE_SEPARATOR = ";"
 
 
@@ -151,6 +154,30 @@ def read_genome_taxonomy(path: Path) -> Dict[str, GenomeTaxonomy]:
     }
 
 
+def write_electron_categories(
+    path: Path, results: Sequence[GenomeResult], electron: Dict[str, List[ElectronRecord]]
+) -> None:
+    """Records of the scanned genomes; a genome listed in the database without categories gets an empty row."""
+    rows: List[Sequence[str]] = []
+    for result in results:
+        records = electron.get(result.genome_id)
+        if records is None:
+            continue
+        if not records:
+            rows.append((result.genome_id, "", "", "", "", ""))
+        rows.extend((r.genome_id, r.role, r.category, r.compound, r.consensus, r.confidence) for r in records)
+    _write_tsv(path, ELECTRON_COLUMNS, rows)
+
+
+def read_electron_categories(path: Path) -> Dict[str, List[ElectronRecord]]:
+    electron: Dict[str, List[ElectronRecord]] = {}
+    for row in _read_tsv(path):
+        records = electron.setdefault(row["genome_id"], [])
+        if row["role"]:
+            records.append(ElectronRecord(**{column: row[column] for column in ELECTRON_COLUMNS}))
+    return electron
+
+
 def write_scan_outputs(
     output_dir: Path,
     entries: Sequence[KoEntry],
@@ -158,6 +185,7 @@ def write_scan_outputs(
     summaries: Sequence[KoSummary],
     run_info: Dict[str, object],
     taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
+    electron: Optional[Dict[str, List[ElectronRecord]]] = None,
 ) -> Dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {name: output_dir / name for name in (STATUS_FILE, HITS_FILE, MATRIX_FILE, SUMMARY_FILE)}
@@ -168,6 +196,9 @@ def write_scan_outputs(
     if taxonomy is not None:
         paths[GENOME_TAXONOMY_FILE] = output_dir / GENOME_TAXONOMY_FILE
         write_genome_taxonomy(paths[GENOME_TAXONOMY_FILE], results, taxonomy)
+    if electron is not None:
+        paths[ELECTRON_CATEGORIES_FILE] = output_dir / ELECTRON_CATEGORIES_FILE
+        write_electron_categories(paths[ELECTRON_CATEGORIES_FILE], results, electron)
 
     paths[CONFIG_COPY_FILE] = output_dir / CONFIG_COPY_FILE
     write_config(entries, paths[CONFIG_COPY_FILE], comments=["copy of the configuration used for this scan"])

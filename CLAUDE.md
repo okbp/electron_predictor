@@ -46,6 +46,7 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 | `reference.py` | reference table → `KoEntry`; KO configuration (TSV) read/write |
 | `kofam.py` | `GCF_*` discovery, `*.kolist_gene.tsv` reading → `GenomeResult` |
 | `summary.py` | per-KO genome counts (`KoSummary`) |
+| `electron_db.py` | donor / acceptor categories per genome (`ElectronRecord`) from `data/electron/electron_donor_acceptor_DATABASE_with_genome.tsv` |
 | `taxonomy.py` | genome lineages (`GenomeTaxonomy`) from the assembly summary and new_taxdump in `data/taxonomy` |
 | `results_io.py` | writes result TSVs / `run_info.json`, and reads them back for `render-html` |
 | `html_report.py` | embeds the payload (JSON) and UI strings into the template |
@@ -96,6 +97,17 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
   23,434 genomes resolve in about 3–5 seconds. If an accession is missing, another version of the same accession is used.
 - `scan` writes `genome_taxonomy.tsv`. `render-html` prefers that file, then `--taxonomy-dir` / `data/taxonomy`;
   `--no-taxonomy` disables the tree. Tests pass `--no-taxonomy` so they never read the real `data/taxonomy`.
+
+## Electron donor / acceptor database (`electron_db.py`)
+
+- One row per genome × role × compound. `role` is `electron_donor` / `electron_acceptor`; the category is in
+  `donor_category` / `acceptor_category` respectively. Joined to scan results by `genome_id` (358 of the 586 autotroph genomes).
+- **The file is saved by Excel as cp932, not UTF-8** (e.g. μ is `83 CA`) and contains NUL characters. `read_electron_db`
+  tries UTF-8 then cp932 and strips NULs; do not assume UTF-8. Rows whose `genome_id` is not a GCF/GCA accession (one row has `0`) are skipped.
+- Every listed genome is a key even without categories (so "not in the database" and "no category" stay distinct).
+- `scan` writes `genome_electron_categories.tsv` (UTF-8; a listed genome without categories gets an empty row).
+  `render-html` prefers that file, then `--electron-db` / the default path; `--no-electron-db` disables it. Tests pass
+  `--no-electron-db` so they never read the real database.
 
 ## Output / read-back contract (`results_io.py`)
 
@@ -162,6 +174,25 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 - Hit-testing in the tree area: rank = `ceil((x − tree origin) / TREE_STEP)` (the segment between rank ticks d−1 and d leads
   to the node at rank d, as in the viewer); the phylum label column counts as phylum. The hovered / pinned path is drawn bold.
 - Measured with 18,242 genomes: load ~155 ms; tree layout + overview draw ~13 ms; detail / overview switch ~20 ms.
+
+### Category sections
+
+- Payload `electron.categories` (`{donor: [...], acceptor: [...]}`) and per genome `el`: `[role, category index, compound,
+  consensus, confidence]`; no `el` = not in the database.
+- The template turns categories into columns (`c.cat`) of `donor_category` / `acceptor_category` sections inserted left of the
+  donor / acceptor KO sections, right after the payload is parsed (before `HAS_ROLES`, `KOS` etc. are derived). Each has a
+  final "no DB" column (level 2 for genomes without `el`).
+- Levels: `used` = 2, only `CONFLICTING` = 1 (drawn at 40% opacity), `not_used` = 0 (tooltip only). `lv()` does not hide
+  level 1 for categories under "exclude below-threshold hits".
+- **Colours and column order are the user's choice**, matched by keyword in `CATEGORY_RULES`; the list order is the column order.
+  Donor: Sulfur (sulfur, 黄色) → Ammonia (緋色) → Nitrite (nitr, 青緑色) → Hydrogen (水色) → Carbon monoxide (carbon, 紺色)
+  → Iron (銅色) → [sulfate, オレンジ, not in the data yet] → Other (grey) → no DB.
+  Acceptor: Aerobes (aerob, 水色) → Nitrate-reducing (青緑色) → SRB (sulfate, オレンジ) → Sulfur-reducing (黄色)
+  → Methanogens / Acetogens (紺色) → FeRB (iron, 銅色) → Other → no DB.
+  Keywords are checked top-down, so none may be a substring of another category name (currently "sulfur" ∉ "sulfate",
+  "iron" ∉ "denitrifiers"); check this when adding a keyword. The donor sheet has "Nitrite oxidizing bacteria" but no
+  Nitrate/Sulfate category; nitrite was given the nitrate colour.
+- Category columns are excluded from "KOs" (`view.visK`), `KO_COUNT` and KO chips; they have their own tooltip rows.
 
 ### Role sections
 

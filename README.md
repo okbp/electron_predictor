@@ -112,6 +112,8 @@ header does not match its role (e.g. an acceptor table saved under the donor fil
 | `--no-html` | do not write the HTML reports |
 | `--taxonomy-dir` | NCBI taxonomy for the tree (default `data/taxonomy` when present) |
 | `--no-taxonomy` | do not resolve lineages; reports have no tree |
+| `--electron-db` | electron donor / acceptor database for the category columns (default `data/electron/electron_donor_acceptor_DATABASE_with_genome.tsv` when present) |
+| `--no-electron-db` | reports without category columns |
 | `--title` / `--title-en` | title of the Japanese / English report |
 | `-v, --verbose` | show progress |
 
@@ -126,6 +128,8 @@ When finished, the number of genomes carrying each KO is printed to standard out
 | `-o, --output-dir` | where to write the reports (default `<results-dir>`) |
 | `--taxonomy-dir` | read lineages from this taxonomy directory (default: `<results-dir>/genome_taxonomy.tsv`, else `data/taxonomy` when present) |
 | `--no-taxonomy` | reports without the tree |
+| `--electron-db` | read categories from this database (default: `<results-dir>/genome_electron_categories.tsv`, else the default database when present) |
+| `--no-electron-db` | reports without category columns |
 | `--title` / `--title-en` | report titles |
 
 ## Output
@@ -137,6 +141,7 @@ When finished, the number of genomes carrying each KO is printed to standard out
 | `genome_ko_matrix.tsv` | genome × KO gene counts (0 = absent); complexes get one column per KO |
 | `genome_ko_hits.tsv` | hit details (gene ID, score, threshold, E-value, significant, role) |
 | `genome_status.tsv` | per-genome status (`ok` / `multiple_files` / `no_file` / `error`) |
+| `genome_electron_categories.tsv` | donor / acceptor categories per genome from the electron database (role, category, compound, consensus, confidence); only when the database was available |
 | `genome_taxonomy.tsv` | organism name and lineage (domain … species, with taxids) per genome; only when taxonomy was available |
 | `ko_config_used.tsv` | copy of the KO configurations used for the scan (donor and acceptor rows together) |
 | `run_info.json` | run date, input and options |
@@ -147,10 +152,17 @@ When finished, the number of genomes carrying each KO is printed to standard out
 **To view the report, `report.html` alone is enough.**
 To rebuild it with `render-html` you need `genome_status.tsv`, `genome_ko_hits.tsv` and `ko_config_used.tsv`
 (the last one is not needed if you pass a configuration with `-c`); `run_info.json` is optional.
-For the taxonomy tree it also uses `genome_taxonomy.tsv`; without that file it reads `data/taxonomy` again, and without either the report has no tree.
+For the category columns it uses `genome_electron_categories.tsv` (or the database). For the taxonomy tree it also uses `genome_taxonomy.tsv`; without that file it reads `data/taxonomy` again, and without either the report has no tree.
 
 ## Using the HTML report
 
+- **Donor / acceptor categories**: `donor_category` / `acceptor_category` from the electron donor / acceptor database
+  (`data/electron/…DATABASE_with_genome.tsv`, matched by `genome_id`) appear as "Donor categories" and "Acceptor categories"
+  sections left of the donor and acceptor KO sections, and collapse like them. Colours: donors — Hydrogen sky blue,
+  Iron copper, Sulfur yellow, Carbon monoxide navy, Ammonia scarlet, Nitrite teal (Sulfate orange if it appears);
+  acceptors — Aerobes sky blue, Nitrate-reducing teal, SRB orange, Sulfur-reducing yellow, FeRB copper,
+  Methanogens / Acetogens navy; Other grey. Strong = consensus `used`, faint = `CONFLICTING` only; `not_used` is shown only in
+  tooltips. "no DB" marks genomes the database does not list. Category columns are not counted in "KOs"
 - **Donor / acceptor sections**: columns are split into "Electron donors" (green) and "Electron acceptors" (orange). Collapse or expand
   each with the band at the top of the headings, the narrow strip of a collapsed section, or the toolbar buttons
   (green = donors, orange = acceptors; filled when expanded, outlined when collapsed).

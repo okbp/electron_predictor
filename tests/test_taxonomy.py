@@ -116,7 +116,7 @@ class ScanWithTaxonomyTest(unittest.TestCase):
             out = root / "out"
             with contextlib.redirect_stdout(io.StringIO()):
                 code = main(["scan", "-i", str(root / "in"), "-o", str(out), "-r", str(reference),
-                             "--taxonomy-dir", str(directory)])
+                             "--taxonomy-dir", str(directory), "--no-electron-db"])
             self.assertEqual(code, 0)
             self.assertEqual(sorted(read_genome_taxonomy(out / "genome_taxonomy.tsv")),
                              ["GCF_000000001.1", "GCF_000000003.1"])
@@ -138,5 +138,5 @@ class ScanWithTaxonomyTest(unittest.TestCase):
             # render-html reuses genome_taxonomy.tsv without the taxonomy directory
             rendered = root / "rendered"
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(main(["render-html", "-i", str(out), "-o", str(rendered)]), 0)
+                self.assertEqual(main(["render-html", "-i", str(out), "-o", str(rendered), "--no-electron-db"]), 0)
             self.assertEqual(tree(rendered / "report_en.html")[0], scanned)

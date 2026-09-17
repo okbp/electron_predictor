@@ -85,5 +85,18 @@
   "roleExpandHint": "Click to expand",
   "roleButtonTitle": "Show or hide the {role} columns",
   "aboutRoles": "Columns are split into electron donor (green) and electron acceptor (orange) sections. Collapse or expand each with the band at the top of the headings, the narrow strip of a collapsed section, or the toolbar buttons. KOs in a collapsed section are left out of \"KOs\" and the TSV export.",
-  "legendRoles": "green = electron donors / orange = electron acceptors"
+  "legendRoles": "green = electron donors / orange = electron acceptors",
+  "roleDonorCategory": "Donor categories",
+  "roleAcceptorCategory": "Acceptor categories",
+  "groupDonorCategory": "donor_category",
+  "groupAcceptorCategory": "acceptor_category",
+  "catNoData": "no DB",
+  "catNoDataFull": "Not in the electron donor / acceptor database",
+  "catInDb": "Listed in the database",
+  "catNone": "No category recorded",
+  "catAbsent": "Not recorded for this category",
+  "catRecord": "{compound} — {consensus} (confidence {grade})",
+  "tipCategoryCount": "{n} of {total} listed genomes",
+  "catSortHint": "Click to list genomes in this category first",
+  "aboutCategories": "donor_category / acceptor_category from the electron donor / acceptor database are shown left of each KO section. Strong colour means consensus \"used\", faint means CONFLICTING only, and \"no DB\" marks genomes the database does not list. not_used records are not coloured and appear only in tooltips. Category columns are not counted in \"KOs\"."
 }

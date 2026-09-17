@@ -85,5 +85,18 @@
   "roleExpandHint": "クリックで開く",
   "roleButtonTitle": "{role}の列を開く／閉じる",
   "aboutRoles": "列は電子供与体（緑）と電子受容体（オレンジ）のセクションに分かれています。見出し上端の帯、閉じたセクションの細い帯、ツールバーのボタンで、それぞれ閉じたり開いたりできます。閉じたセクションの KO は「KO数」と TSV 保存から除かれます。",
-  "legendRoles": "緑＝電子供与体 / オレンジ＝電子受容体"
+  "legendRoles": "緑＝電子供与体 / オレンジ＝電子受容体",
+  "roleDonorCategory": "供与体カテゴリ",
+  "roleAcceptorCategory": "受容体カテゴリ",
+  "groupDonorCategory": "donor_category",
+  "groupAcceptorCategory": "acceptor_category",
+  "catNoData": "DBなし",
+  "catNoDataFull": "電子供与体・受容体 DB に記載なし",
+  "catInDb": "DB には記載あり",
+  "catNone": "カテゴリの記載なし",
+  "catAbsent": "このカテゴリの記載なし",
+  "catRecord": "{compound} — {consensus}（信頼度 {grade}）",
+  "tipCategoryCount": "表示中の {total} ゲノムのうち {n} が該当",
+  "catSortHint": "クリックでこのカテゴリに該当するゲノムを先頭に並べ替え",
+  "aboutCategories": "電子供与体・受容体 DB の donor_category / acceptor_category を、それぞれの KO セクションの左に表示します。濃い色は consensus が used、薄い色は CONFLICTING のみ、「DBなし」は DB にそのゲノムの記載がないことを示します。not_used の記載は色を付けず、ツールチップにだけ出します。カテゴリの列は「KO数」には含めません。"
 }
