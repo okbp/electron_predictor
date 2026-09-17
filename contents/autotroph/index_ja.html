@@ -954,7 +954,8 @@
     ctx.clip();
     if (hover.col >= 0 && cols[hover.col]) {
       ctx.fillStyle = css('--cross');
-      ctx.fillRect(xOff + cols[hover.col].x - 1, HEAD_ROLE + HEAD_GROUP, CELL + 2, HEADER_H - HEAD_ROLE - HEAD_GROUP);
+      var hy = cols[hover.col].cat ? HEAD_ROLE : HEAD_ROLE + HEAD_GROUP;
+      ctx.fillRect(xOff + cols[hover.col].x - 1, hy, CELL + 2, HEADER_H - hy);
     }
 
     // Functional groups: two staggered rows so that narrow groups can borrow width from the next one.
@@ -963,6 +964,7 @@
     ctx.textAlign = 'left';
     ctx.font = '600 10px ' + SANS;
     groups.forEach(function (r, i) {
+      if (cols[r.start].cat) return;   // category names use the group / gene rows too
       var x = xOff + cols[r.start].x, x1 = xOff + cols[r.end].x + CELL;
       var next = groups[i + 2];
       var maxW = next ? xOff + cols[next.start].x - 6 - x : Math.max(x1 - x, g.W - x);
@@ -979,20 +981,27 @@
     ctx.font = '9.5px ' + SANS;
     runs(cols, function (c) { return c.group + '|' + c.source; }).forEach(function (r) {
       var x = xOff + cols[r.start].x, w = cols[r.end].x + CELL - cols[r.start].x;
-      if (w < 12) return;
+      if (w < 12 || cols[r.start].cat) return;
       ctx.fillStyle = css('--text2');
       ctx.fillText(fitted(ctx, shortName(cols[r.start].gene), w + CELL_GAP), x, HEAD_ROLE + HEAD_GROUP + 10);
     });
 
-    // KO identifiers, written vertically.
-    ctx.font = '9.5px ' + MONO;
+    // KO identifiers, written vertically. Category columns show the category name instead, truncated to
+    // fit the group + gene + KO rows (their sections draw no group / gene labels); "no DB" keeps its short label.
     ctx.textBaseline = 'middle';
+    var CAT_LABEL_H = HEAD_GROUP + HEAD_GENE + HEAD_KO - 8;
     cols.forEach(function (c, i) {
       ctx.save();
       ctx.translate(xOff + c.x + CELL / 2, HEAD_ROLE + HEAD_GROUP + HEAD_GENE + HEAD_KO - 3);
       ctx.rotate(-Math.PI / 2);
       ctx.fillStyle = state.sortKey === 'ko:' + c.ko ? css('--accent') : i === hover.col ? css('--text') : css('--text2');
-      ctx.fillText(c.cat ? c.label : c.ko + (c.shared ? '※' : ''), 0, 0);
+      if (c.cat) {
+        ctx.font = '9.5px ' + SANS;
+        ctx.fillText(c.nodata ? c.label : fitted(ctx, c.gene, CAT_LABEL_H), 0, 0);
+      } else {
+        ctx.font = '9.5px ' + MONO;
+        ctx.fillText(c.ko + (c.shared ? '※' : ''), 0, 0);
+      }
       ctx.restore();
     });
 
@@ -1384,6 +1393,7 @@
     var col = colAtX(cx);
     if (col < 0) return null;
     var y = my - HEAD_ROLE;
+    if (view.cols[col].cat) return { area: 'ko', col: col };
     return { area: y < HEAD_GROUP ? 'group' : y < HEAD_GROUP + HEAD_GENE ? 'gene' : 'ko', col: col };
   }
 

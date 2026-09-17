@@ -192,6 +192,10 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
   Keywords are checked top-down, so none may be a substring of another category name (currently "sulfur" ∉ "sulfate",
   "iron" ∉ "denitrifiers"); check this when adding a keyword. The donor sheet has "Nitrite oxidizing bacteria" but no
   Nitrate/Sulfate category; nitrite was given the nitrate colour.
+- **Category column headings show the category name** (user request), not the short element label: written vertically in
+  SANS, truncated with "…" to fit the group + gene + KO rows (`CAT_LABEL_H`). Category sections therefore draw no group label,
+  bracket or gene label, and the whole height below the band counts as the column in header hit-testing. Only the "no DB"
+  column keeps its short label. The rule's short label (third field of `CATEGORY_RULES`) is no longer displayed.
 - Category columns are excluded from "KOs" (`view.visK`), `KO_COUNT` and KO chips; they have their own tooltip rows.
 
 ### Role sections
