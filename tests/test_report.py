@@ -90,6 +90,10 @@ class HtmlTest(unittest.TestCase):
         self.assertEqual(en["title"], "KO Presence Report")
         self.assertIn('<html lang="en">', render_html(en))
 
+    def test_reports_ask_search_engines_not_to_index(self):
+        page = render_html(build_payload([], [], "ja"))
+        self.assertIn('<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">', page)
+
 
 class CliTest(unittest.TestCase):
     def test_scan_with_donor_and_acceptor_configs(self):

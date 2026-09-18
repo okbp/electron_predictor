@@ -153,6 +153,7 @@ When finished, the number of genomes carrying each KO is printed to standard out
 - Genomes carrying none of the target KOs are **not shown in the HTML**, but they are included in the TSVs and in the `ko_summary.tsv` denominator
 
 **To view the report, `report.html` alone is enough.**
+The reports carry `noindex` / `nofollow` robots meta tags so search engines do not index them when placed on a web server.
 To rebuild it with `render-html` you need `genome_status.tsv`, `genome_ko_hits.tsv` and `ko_config_used.tsv`
 (the last one is not needed if you pass a configuration with `-c`); `run_info.json` is optional.
 For the phenotype and category columns it uses `genome_phenotype.tsv` and `genome_electron_categories.tsv` (or `phenotype_data.tsv`). For the taxonomy tree it also uses `genome_taxonomy.tsv`; without that file it reads `data/taxonomy` again, and without either the report has no tree.

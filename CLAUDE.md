@@ -142,6 +142,8 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
   Data goes into `<script type="application/json">` with **every `<` replaced by its JSON Unicode escape
   (backslash + `u003c`)** to guard against `</script>`. `<` only occurs inside JSON strings, so the value is unchanged.
 - No external scripts, CSS, fonts or fetch. The report must open from `file://` by double-clicking.
+- The `<head>` carries `<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">` and
+  `<meta name="referrer" content="no-referrer">` (user request: keep reports out of search engines). Keep them.
 - Payload: `columns` (configuration rows that have a KO, in display order), `genomes` (**only genomes with hits**;
   `hits: {KO: [[gene, score, threshold, evalue, significant], …]}`), `genomesWithoutHits` (count),
   `excluded`, `undetectable`, `i18n` (UI strings), `taxonomy` (null, or `{ranks, nodes}` with nodes
@@ -268,7 +270,7 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 ## Verifying changes
 
 ```bash
-python3 -m unittest                                   # 48 tests, no network
+python3 -m unittest                                   # 49 tests, no network
 python3 scripts/build_configs.py                      # donor 38 KOs / acceptor 59 KOs, 11 rows without KO each
 python3 -m ko_detector scan -i data/examples -c config/donor_ko_config.tsv -c config/acceptor_ko_config.tsv -o <scratch dir>
 python3 -m ko_detector render-html -i data/results/refseq_reference_genomes -o <scratch dir>
