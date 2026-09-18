@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 from typing import Dict, Iterable, Iterator, List, Optional, Sequence
 
-from .electron_db import ElectronRecord
 from .models import GenomeResult, Hit, KoEntry
+from .phenotype import TRAITS, ElectronRecord, GenomePhenotype, TraitValue
 from .reference import entries_by_ko, join_unique, searchable_kos, write_config
 from .summary import KoSummary
 from .taxonomy import TAXONOMY_RANKS, GenomeTaxonomy
@@ -20,6 +20,7 @@ SUMMARY_FILE = "ko_summary.tsv"
 CONFIG_COPY_FILE = "ko_config_used.tsv"
 GENOME_TAXONOMY_FILE = "genome_taxonomy.tsv"
 ELECTRON_CATEGORIES_FILE = "genome_electron_categories.tsv"
+PHENOTYPE_FILE = "genome_phenotype.tsv"
 RUN_INFO_FILE = "run_info.json"
 
 STATUS_COLUMNS = ("genome_id", "status", "n_rows", "n_target_kos", "n_hits", "files", "message")
@@ -49,7 +50,11 @@ SUMMARY_COLUMNS = (
 TAXONOMY_COLUMNS = ("genome_id", "taxid", "organism_name") + tuple(
     column for rank in TAXONOMY_RANKS for column in (rank, f"{rank}_taxid")
 )
-ELECTRON_COLUMNS = ("genome_id", "role", "category", "compound", "consensus", "confidence")
+ELECTRON_COLUMNS = ("genome_id", "role", "category", "compound", "consensus", "source")
+PHENOTYPE_COLUMNS = (
+    "genome_id", "organisms", "trait", "value", "class", "number",
+    "status", "tier", "source", "evidence", "url", "other_values",
+)
 FILE_SEPARATOR = ";"
 
 
@@ -157,7 +162,7 @@ def read_genome_taxonomy(path: Path) -> Dict[str, GenomeTaxonomy]:
 def write_electron_categories(
     path: Path, results: Sequence[GenomeResult], electron: Dict[str, List[ElectronRecord]]
 ) -> None:
-    """Records of the scanned genomes; a genome listed in the database without categories gets an empty row."""
+    """Records of the scanned genomes; a genome in phenotype_data.tsv without donors / acceptors gets an empty row."""
     rows: List[Sequence[str]] = []
     for result in results:
         records = electron.get(result.genome_id)
@@ -165,7 +170,7 @@ def write_electron_categories(
             continue
         if not records:
             rows.append((result.genome_id, "", "", "", "", ""))
-        rows.extend((r.genome_id, r.role, r.category, r.compound, r.consensus, r.confidence) for r in records)
+        rows.extend((r.genome_id, r.role, r.category, r.compound, r.consensus, r.source) for r in records)
     _write_tsv(path, ELECTRON_COLUMNS, rows)
 
 
@@ -178,6 +183,40 @@ def read_electron_categories(path: Path) -> Dict[str, List[ElectronRecord]]:
     return electron
 
 
+def write_phenotypes(path: Path, results: Sequence[GenomeResult], phenotypes: Dict[str, GenomePhenotype]) -> None:
+    """One row per (genome, trait); a genome in phenotype_data.tsv without any trait gets an empty row."""
+    rows: List[Sequence[object]] = []
+    for result in results:
+        phenotype = phenotypes.get(result.genome_id)
+        if phenotype is None:
+            continue
+        organisms = "; ".join(phenotype.organisms)
+        if not phenotype.traits:
+            rows.append((result.genome_id, organisms) + ("",) * (len(PHENOTYPE_COLUMNS) - 2))
+        for trait in TRAITS:
+            v = phenotype.traits.get(trait)
+            if v is not None:
+                number = "" if v.number is None else f"{v.number:g}"
+                rows.append((result.genome_id, organisms, trait, v.value, v.klass, number,
+                             v.status, v.tier, v.source, v.evidence, v.url, v.other_values))
+    _write_tsv(path, PHENOTYPE_COLUMNS, rows)
+
+
+def read_phenotypes(path: Path) -> Dict[str, GenomePhenotype]:
+    phenotypes: Dict[str, GenomePhenotype] = {}
+    for row in _read_tsv(path):
+        phenotype = phenotypes.setdefault(
+            row["genome_id"], GenomePhenotype(row["genome_id"], row["organisms"].split("; "), {})
+        )
+        if row["trait"]:
+            phenotype.traits[row["trait"]] = TraitValue(
+                value=row["value"], klass=row["class"], number=float(row["number"]) if row["number"] else None,
+                status=row["status"], tier=row["tier"], source=row["source"], evidence=row["evidence"],
+                url=row["url"], other_values=row["other_values"],
+            )
+    return phenotypes
+
+
 def write_scan_outputs(
     output_dir: Path,
     entries: Sequence[KoEntry],
@@ -186,6 +225,7 @@ def write_scan_outputs(
     run_info: Dict[str, object],
     taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
     electron: Optional[Dict[str, List[ElectronRecord]]] = None,
+    phenotypes: Optional[Dict[str, GenomePhenotype]] = None,
 ) -> Dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     paths = {name: output_dir / name for name in (STATUS_FILE, HITS_FILE, MATRIX_FILE, SUMMARY_FILE)}
@@ -199,6 +239,9 @@ def write_scan_outputs(
     if electron is not None:
         paths[ELECTRON_CATEGORIES_FILE] = output_dir / ELECTRON_CATEGORIES_FILE
         write_electron_categories(paths[ELECTRON_CATEGORIES_FILE], results, electron)
+    if phenotypes is not None:
+        paths[PHENOTYPE_FILE] = output_dir / PHENOTYPE_FILE
+        write_phenotypes(paths[PHENOTYPE_FILE], results, phenotypes)
 
     paths[CONFIG_COPY_FILE] = output_dir / CONFIG_COPY_FILE
     write_config(entries, paths[CONFIG_COPY_FILE], comments=["copy of the configuration used for this scan"])

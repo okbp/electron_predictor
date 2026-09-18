@@ -46,7 +46,7 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 | `reference.py` | reference table → `KoEntry`; KO configuration (TSV) read/write |
 | `kofam.py` | `GCF_*` discovery, `*.kolist_gene.tsv` reading → `GenomeResult` |
 | `summary.py` | per-KO genome counts (`KoSummary`) |
-| `electron_db.py` | donor / acceptor categories per genome (`ElectronRecord`) from `data/electron/electron_donor_acceptor_DATABASE_with_genome.tsv` |
+| `phenotype.py` | phenotypes (`GenomePhenotype` / `TraitValue`) and donor / acceptor categories (`ElectronRecord`) per genome from `data/electron/phenotype_data.tsv` and the three `config/` tables |
 | `taxonomy.py` | genome lineages (`GenomeTaxonomy`) from the assembly summary and new_taxdump in `data/taxonomy` |
 | `results_io.py` | writes result TSVs / `run_info.json`, and reads them back for `render-html` |
 | `html_report.py` | embeds the payload (JSON) and UI strings into the template |
@@ -55,6 +55,7 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 | `templates/messages/{ja,en}.json` | UI strings |
 | `scripts/build_configs.py` | builds `config/donor_ko_config.tsv` and `config/acceptor_ko_config.tsv` from the two reference tables (fixed names in `SHEETS`) |
 | `scripts/setup_taxonomy.py` | downloads NCBI new_taxdump and assembly_summary_refseq.txt (independent of ko_detector) |
+| `scripts/draft_habitat_classes.py` | drafts classes for habitat values not yet in `config/habitat_classes.tsv` (keyword rules of the reviewed draft) |
 
 ## Reference parsing (`reference.py`)
 
@@ -98,16 +99,33 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 - `scan` writes `genome_taxonomy.tsv`. `render-html` prefers that file, then `--taxonomy-dir` / `data/taxonomy`;
   `--no-taxonomy` disables the tree. Tests pass `--no-taxonomy` so they never read the real `data/taxonomy`.
 
-## Electron donor / acceptor database (`electron_db.py`)
+## Phenotype data (`phenotype.py`)
 
-- One row per genome × role × compound. `role` is `electron_donor` / `electron_acceptor`; the category is in
-  `donor_category` / `acceptor_category` respectively. Joined to scan results by `genome_id` (358 of the 586 autotroph genomes).
-- **The file is saved by Excel as cp932, not UTF-8** (e.g. μ is `83 CA`) and contains NUL characters. `read_electron_db`
-  tries UTF-8 then cp932 and strips NULs; do not assume UTF-8. Rows whose `genome_id` is not a GCF/GCA accession (one row has `0`) are skipped.
-- Every listed genome is a key even without categories (so "not in the database" and "no category" stay distinct).
-- `scan` writes `genome_electron_categories.tsv` (UTF-8; a listed genome without categories gets an empty row).
-  `render-html` prefers that file, then `--electron-db` / the default path; `--no-electron-db` disables it. Tests pass
-  `--no-electron-db` so they never read the real database.
+`data/electron/phenotype_data.tsv` (UTF-8, cp932 fallback; 640 organism rows × 128 columns) replaced the former
+`electron_donor_acceptor_DATABASE_with_genome.tsv`, which **is no longer used** (user decision). Joined by `genome_accession`
+(581 of the 586 autotroph genomes). Decisions made with the user (2026-09-18):
+
+- Rows without an accession are skipped (44). **Column-shifted rows are skipped**, not repaired: `is_shifted()` = `oxygen_status`
+  looks like a tier (`"1 (…"`) or `optimal_pH_kind` is not empty / `optimum` (only org571).
+- **Rows sharing an accession are united** (GCF_001267435.1 = Moorella thermoacetica + M. thermoautotrophica): tokens are unioned
+  (first mention wins); per trait the value with the lower source tier number is kept, the other goes to `other_values` as
+  `value [organism]`.
+- Traits: `oxygen` (6 levels in `OXYGEN_LEVELS`; "facultative aerobic" → facultative anaerobic), `optimal_temperature` /
+  `optimal_pH` (a number or a range like `55-60` or `-2-30`; **no class boundaries**, the report colours the midpoint
+  continuously; missing values are **not** substituted from growth ranges), `habitat` (HTML tags removed, class from
+  `config/habitat_classes.tsv`; unknown → `other` with a warning). Status / tier / source / evidence (cut at 400 chars) / URL /
+  other values are kept for tooltips. Values are species-level; tooltips say so.
+- Electron tokens (`electron_donors` / `electron_acceptors`, `; `-separated like `S2O3(2-) thiosulfate`):
+  category from `config/electron_compound_categories.tsv` (seeded from the old database's compound → category mapping; unknown → `Other`
+  with a warning); `config/phenotype_corrections.tsv` moves obvious role reversals (H2 / CO listed as acceptors, nitrate as a donor).
+  Consensus: `used`; `CONFLICTING` when also in `electron_donor_acceptor_conflicting_reports` or `reported_not_used_as_<role>`;
+  `not_used` when only in `reported_not_used_as_<role>`; **`audit_error` when every source is "audited ERROR"** (no "literature" /
+  "audited OK" in it) — not counted, tooltip only.
+- **Do not split sources on `;`**: 62 sources contain `;` inside brackets. `token_sources()` locates each known `token + ":"`.
+  `reported_not_used_*` is parsed with `BRACKETED_RE` (`token [note]`; notes may contain `; putative only`).
+- `scan` writes `genome_phenotype.tsv` (one row per genome × trait; a genome without traits gets an empty row) and
+  `genome_electron_categories.tsv` (column `source`, formerly `confidence`). `render-html` prefers both files, then `--phenotype` /
+  the default path; `--no-phenotype` disables both. Tests pass `--no-phenotype` so they never read the real data.
 
 ## Output / read-back contract (`results_io.py`)
 
@@ -175,26 +193,39 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
   to the node at rank d, as in the viewer); the phylum label column counts as phylum. The hovered / pinned path is drawn bold.
 - Measured with 18,242 genomes: load ~155 ms; tree layout + overview draw ~13 ms; detail / overview switch ~20 ms.
 
+### Phenotype section
+
+- Payload `phenotype` (`{traits, oxygen}`) and per genome `ph` (one entry per trait in `traits` order, null when empty:
+  `[value, class, number, status, tier, source, evidence, url, other values]`) and `phOrg`; no `ph` = not in phenotype_data.
+- The template prepends 4 columns (`c.cat` and `c.ph`, `c.ti` = trait index) as a `phenotype` section left of everything, with a
+  neutral grey toggle (`--btn-ph`) and share bars (`--ph`). `phVal` (class index or number, NaN = none) / `phOk` (status
+  `verified`) are built once; levels are 2 (verified) / 1 (other) / 0 so counts and filters work as for categories.
+- Colours are the user's choice: oxygen and habitat per class (`OXYGEN_CLASSES` / `HABITAT_CLASSES`, [key, light, dark, label]);
+  temperature 0–110 °C and pH 1–11 interpolated between `TEMP_STOPS` / `PH_STOPS`. Unverified values at `PH_FAINT` (45%).
+  Overview bins: most frequent class / mean number, opacity by the share with a value.
+- Sorting a phenotype heading sorts by value (class order or number); genomes without a value stay last in both directions.
+  The heading tooltip is the legend (class counts or the colour scale). TSV export writes the values as written (+ habitat class).
+
 ### Category sections
 
 - Payload `electron.categories` (`{donor: [...], acceptor: [...]}`) and per genome `el`: `[role, category index, compound,
-  consensus, confidence]`; no `el` = not in the database.
+  consensus, source]`; no `el` = not in phenotype_data.
 - The template turns categories into columns (`c.cat`) of `donor_category` / `acceptor_category` sections inserted left of the
   donor / acceptor KO sections, right after the payload is parsed (before `HAS_ROLES`, `KOS` etc. are derived). Each has a
-  final "no DB" column (level 2 for genomes without `el`).
-- Levels: `used` = 2, only `CONFLICTING` = 1 (drawn at 40% opacity), `not_used` = 0 (tooltip only). `lv()` does not hide
+  final "no data" column (level 2 for genomes without `el`).
+- Levels: `used` = 2, only `CONFLICTING` = 1 (drawn at 40% opacity), `not_used` / `audit_error` = 0 (tooltip only). `lv()` does not hide
   level 1 for categories under "exclude below-threshold hits".
 - **Colours and column order are the user's choice**, matched by keyword in `CATEGORY_RULES`; the list order is the column order.
   Donor: Sulfur (sulfur, 黄色) → Ammonia (緋色) → Nitrite (nitr, 青緑色) → Hydrogen (水色) → Carbon monoxide (carbon, 紺色)
-  → Iron (銅色) → [sulfate, オレンジ, not in the data yet] → Other (grey) → no DB.
+  → Iron (銅色) → [sulfate, オレンジ, not in the data yet] → Other (grey) → no data.
   Acceptor: Aerobes (aerob, 水色) → Nitrate-reducing (青緑色) → SRB (sulfate, オレンジ) → Sulfur-reducing (黄色)
-  → Methanogens / Acetogens (紺色) → FeRB (iron, 銅色) → Other → no DB.
+  → Methanogens / Acetogens (紺色) → FeRB (iron, 銅色) → Other → no data.
   Keywords are checked top-down, so none may be a substring of another category name (currently "sulfur" ∉ "sulfate",
   "iron" ∉ "denitrifiers"); check this when adding a keyword. The donor sheet has "Nitrite oxidizing bacteria" but no
   Nitrate/Sulfate category; nitrite was given the nitrate colour.
 - **Category column headings show the category name** (user request), not the short element label: written vertically in
   SANS, truncated with "…" to fit the group + gene + KO rows (`CAT_LABEL_H`). Category sections therefore draw no group label,
-  bracket or gene label, and the whole height below the band counts as the column in header hit-testing. Only the "no DB"
+  bracket or gene label, and the whole height below the band counts as the column in header hit-testing. Only the "no data"
   column keeps its short label. The rule's short label (third field of `CATEGORY_RULES`) is no longer displayed.
 - Category columns are excluded from "KOs" (`view.visK`), `KO_COUNT` and KO chips; they have their own tooltip rows.
 
@@ -237,7 +268,7 @@ The main target is 23,434 RefSeq genomes (`/Users/okabeppuyouko/work/GMO/refseq_
 ## Verifying changes
 
 ```bash
-python3 -m unittest                                   # 40 tests, no network
+python3 -m unittest                                   # 48 tests, no network
 python3 scripts/build_configs.py                      # donor 38 KOs / acceptor 59 KOs, 11 rows without KO each
 python3 -m ko_detector scan -i data/examples -c config/donor_ko_config.tsv -c config/acceptor_ko_config.tsv -o <scratch dir>
 python3 -m ko_detector render-html -i data/results/refseq_reference_genomes -o <scratch dir>

@@ -1,0 +1,520 @@
+# habitat value of phenotype_data.tsv (HTML tags removed) -> environment class; reviewed 2026-09-18
+# add a row for new habitat values (scripts/draft_habitat_classes.py drafts them); classes are listed in README
+habitat	class	class_label	n_organisms	basis
+a deep-sea hydrothermal vent chimney sample	vent	熱水噴出孔・海底熱水	1	single
+active black smoker	vent	熱水噴出孔・海底熱水	1	single
+Alvinella pompejana	vent	熱水噴出孔・海底熱水	1	single
+Alvinella pompejana (a deep-sea hydrothermal vent polychaete)	vent	熱水噴出孔・海底熱水	1	single
+Alvinella pompejana tubes, deep-sea hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+an in-situ colonization device deployed in hydrothermal fluid	vent	熱水噴出孔・海底熱水	1	single
+biofilm-covered tube of Alvinella pompejana from a colonization device on the wall of an active chimney vent, 2621 m depth	vent	熱水噴出孔・海底熱水	1	single
+Black smoker at the Kairei Field on the Central Indian Ridgem Indian Ocean	vent	熱水噴出孔・海底熱水	1	single
+black smoker chimney sample, 2275 m depth	vent	熱水噴出孔・海底熱水	1	single
+black smoker vent, depth of 2421 m	vent	熱水噴出孔・海底熱水	1	single
+black smoker wall, 3500m depth	vent	熱水噴出孔・海底熱水	1	single
+coastal hot spring	vent	熱水噴出孔・海底熱水	1	single
+content of a vent cap	vent	熱水噴出孔・海底熱水	1	single
+core sample from a deep sea hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+deep-sea actively venting hydrothermal sulfidic chimney	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hdyrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal chimney	vent	熱水噴出孔・海底熱水	1	single
+Deep-sea hydrothermal chimney collected from the Lucky Strike hydrothermal vent field on the Mid-Atlantic Ridge	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal chimney sample, 2420m depth	vent	熱水噴出孔・海底熱水	1	single
+Deep-sea hydrothermal chimney samples	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal chimney, 1910 m depth	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal field	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal field at the bayonnaise knoll of the izu-ogasawara arc	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal plume in the northwestern indian ocean	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal sediments	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vent	vent	熱水噴出孔・海底熱水	4	single
+deep-sea hydrothermal vent chimney	vent	熱水噴出孔・海底熱水	5	single
+deep-sea hydrothermal vent chimney at the suiyo seamount in the western pacific ocean	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vent chimney, 3500 m depth	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vent chimney, depth of 2422 m	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vent in the mid-okinawa trough	vent	熱水噴出孔・海底熱水	1	single
+Deep-sea hydrothermal vent on the East Pacific Rise	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vent polychaetes nest (Paralivinella sp.), 1604 m depth	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vent sulfides, 2000 m depth	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vent, 1385 m depth	vent	熱水噴出孔・海底熱水	1	single
+deep-sea hydrothermal vents	vent	熱水噴出孔・海底熱水	1	single
+deep-sea sulfide chimney of northwest indian ocean	vent	熱水噴出孔・海底熱水	1	single
+diffuse-flow fluids on the east pacific rise	vent	熱水噴出孔・海底熱水	1	single
+fragment of hydrothermal structure	vent	熱水噴出孔・海底熱水	1	single
+fragment of hydrothermal structure, 4100 m depth	vent	熱水噴出孔・海底熱水	1	single
+geothermal vent in yang-ming national park in northern taiwan	vent	熱水噴出孔・海底熱水	1	single
+geothermally heated deep sea sediment	vent	熱水噴出孔・海底熱水	1	single
+geothermally heated sea floor	vent	熱水噴出孔・海底熱水	1	single
+hot springs in the deep ocean	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal chimney sample	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal deep sea vent, 3000 m depth	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal field chimney	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal sediments	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal sediments grown in hydrogenotrophic sulfate-reducing enrichment at 60 degrees Celsius	vent	熱水噴出孔・海底熱水	1	manual
+hydrothermal sulfide chimney in the northwest indian ocean	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal systems at são miguel island	vent	熱水噴出孔・海底熱水	1	single
+Hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal vent at the longqi system, southwestern indian ocean	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal vent chimney, 2600 m depth	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal vent chimney, 972 m depth	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal vent deposit, 2520 m depth	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal vent deposit, depth 1624 m	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal vent fluid, depth of 1520 m	vent	熱水噴出孔・海底熱水	1	single
+hydrothermal vent, 2000 m depth	vent	熱水噴出孔・海底熱水	1	single
+in situ colonization system deployed in a hydrothermal diffusing flow (maximum temperature of 78°C)	vent	熱水噴出孔・海底熱水	1	single
+iron-rich microbial mats associated with a cool (23°C), diffuse vent site, 1325 m below the surface	vent	熱水噴出孔・海底熱水	1	single
+juan de fuca ridge hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+low-temperature hydrothermal vent fluid	vent	熱水噴出孔・海底熱水	1	single
+Marine hydrothermal area of Vulcano Island	vent	熱水噴出孔・海底熱水	1	single
+marine hydrothermal system	vent	熱水噴出孔・海底熱水	1	single
+marine sediment core of an undersea caldera	vent	熱水噴出孔・海底熱水	1	single
+marine shallow-water hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+nests of tube-dwelling polychaetes adjacent to deep-sea hydrothermal vents	vent	熱水噴出孔・海底熱水	1	single
+rock samples collected from a hydrothermal field	vent	熱水噴出孔・海底熱水	1	single
+rock samples from a deep-sea hydrothermal field	vent	熱水噴出孔・海底熱水	1	single
+rock samples from the wall of a black smoker, 3650 m depth	vent	熱水噴出孔・海底熱水	1	single
+scrapings from outer tube of tubeworm from hydrothermal vent aerea, 2550 m depth	vent	熱水噴出孔・海底熱水	1	single
+seawater sample near an active hydrothermal vent at 3454m depth	vent	熱水噴出孔・海底熱水	1	single
+sediment from a submarine coastal gas vent	vent	熱水噴出孔・海底熱水	1	single
+sediment of shallow-sea hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+sediment sample of submarine hydrothermal system	vent	熱水噴出孔・海底熱水	1	single
+shallow marine hydrothermal system occurring in coral reefs off Taketomi Island	vent	熱水噴出孔・海底熱水	1	manual
+submarine hot spring	vent	熱水噴出孔・海底熱水	1	single
+submarine hydrothermal vent	vent	熱水噴出孔・海底熱水	2	single
+submarine solfataric field	vent	熱水噴出孔・海底熱水	2	single
+sulfide chimney fragments from an active deep-sea hydrothermal vent, depth 2500 m	vent	熱水噴出孔・海底熱水	1	single
+sulfide chimney structure at the Yonaguni Knoll IV hydrothermal field	vent	熱水噴出孔・海底熱水	1	single
+sulfide chimney structures covered by polychaete colonies	vent	熱水噴出孔・海底熱水	1	single
+sulfide from a deep-sea chimney wall, depth of 2771 m	vent	熱水噴出孔・海底熱水	1	single
+sulfide sample from a high-temperature hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+sulfidic thermal sea water	vent	熱水噴出孔・海底熱水	1	single
+tube of the deep-sea hydrothermal vent polychaete Riftia pachyptila	vent	熱水噴出孔・海底熱水	1	single
+wall of black smoker chimney	vent	熱水噴出孔・海底熱水	1	single
+walls of an active deep-sea hydrothermal vent chimney	vent	熱水噴出孔・海底熱水	1	single
+water and sediment from a shallow marine hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+water and sediment from a shallow, submarine hydrothermal vent	vent	熱水噴出孔・海底熱水	1	single
+73C hot spring biofilm, pH 6.5	hotspring	温泉・地熱	1	single
+A terrestrial hydrothermal pond 'Kuchonnyi' at Uzon Caldera	hotspring	温泉・地熱	1	single
+acid-sulfate-chloride geothermal spring in norris geyser basin, ynp	hotspring	温泉・地熱	1	single
+acidic geothermal mud spring in kamchatka, russia	hotspring	温泉・地熱	1	single
+acidic high sulfide hot springs	hotspring	温泉・地熱	1	single
+acidic hot spring	hotspring	温泉・地熱	1	single
+acidic pool in a geothermal area	hotspring	温泉・地熱	1	single
+anoxic geothermal ground-water	hotspring	温泉・地熱	1	single
+Calcite Hot Spring in Yellowstone National Park	hotspring	温泉・地熱	1	single
+clayish liquid sample of a hot spring	hotspring	温泉・地熱	1	single
+Environment, Mud and water from hot spring	hotspring	温泉・地熱	1	single
+ferric deposits of a terrestrial hydrothermal spring	hotspring	温泉・地熱	1	single
+garga hot spring in the buryat republic (russia)	hotspring	温泉・地熱	1	single
+geothermal aera	hotspring	温泉・地熱	1	single
+hot fumarole in manza, japan	hotspring	温泉・地熱	1	single
+hot sediment	hotspring	温泉・地熱	1	single
+hot solfataric spring	hotspring	温泉・地熱	1	single
+hot spring	hotspring	温泉・地熱	15	single
+hot spring in tengchong, china	hotspring	温泉・地熱	1	single
+hot spring microbial mat	hotspring	温泉・地熱	1	single
+hot spring microbial mats	hotspring	温泉・地熱	1	single
+hot spring of the uzon caldera, kamchatka, russia	hotspring	温泉・地熱	1	single
+hot spring run-off	hotspring	温泉・地熱	1	single
+hot spring sediment	hotspring	温泉・地熱	1	single
+hot spring sourced by deep, anoxic hydrothermal waters	hotspring	温泉・地熱	1	single
+hot spring water	hotspring	温泉・地熱	1	single
+hot spring water from a storage tank for a public bath	hotspring	温泉・地熱	1	single
+hot springs	hotspring	温泉・地熱	3	single
+hot springs of kunashir island and kamchatka peninsula	hotspring	温泉・地熱	1	single
+hot water pond	hotspring	温泉・地熱	1	single
+mat and thermal water	hotspring	温泉・地熱	1	single
+Meotobuchi hot spring	hotspring	温泉・地熱	1	single
+mixed sample of sediment, water and biomass of hot spring	hotspring	温泉・地熱	1	single
+mud from terrestrial mud volcano	hotspring	温泉・地熱	1	single
+mud hole, solfataric field	hotspring	温泉・地熱	1	single
+mud volcano (95°C)	hotspring	温泉・地熱	1	single
+mud, solfatara crater	hotspring	温泉・地熱	1	single
+narugo hot spring	hotspring	温泉・地熱	1	single
+obsidian pool, yellowstone national park, wyoming	hotspring	温泉・地熱	1	single
+outflow channel of a hot spring	hotspring	温泉・地熱	1	single
+russian hot springs	hotspring	温泉・地熱	1	single
+sediment of terrestrial hot spring	hotspring	温泉・地熱	1	single
+sediment slurry of hot pool	hotspring	温泉・地熱	1	single
+sediment-water mixture from a terrestrial hot spring	hotspring	温泉・地熱	1	single
+slightly alkaline hot spring	hotspring	温泉・地熱	1	single
+solfatara	hotspring	温泉・地熱	1	single
+solfataric field	hotspring	温泉・地熱	1	single
+solfataric mud	hotspring	温泉・地熱	1	single
+solfataric mud hole	hotspring	温泉・地熱	1	single
+stygian hot springs	hotspring	温泉・地熱	1	single
+sulfur-rich acidic edge of a solfataric hot spring	hotspring	温泉・地熱	1	single
+Sulfuric hot spring	hotspring	温泉・地熱	1	single
+sulphurous hot spring at beppu, japan	hotspring	温泉・地熱	1	single
+tassajara hot spring	hotspring	温泉・地熱	1	single
+terrestrial hot spring	hotspring	温泉・地熱	2	single
+terrestrial hot spring (74 °C, pH 6.0)	hotspring	温泉・地熱	1	single
+terrestrial hot spring Champagne Pool in Waiotapu	hotspring	温泉・地熱	1	single
+terrestrial mud volcano	hotspring	温泉・地熱	2	single
+terrestrial thermal spring	hotspring	温泉・地熱	1	single
+thermal spring drainage	hotspring	温泉・地熱	1	single
+thermal sulfur spring	hotspring	温泉・地熱	2	single
+Treshchinnyi hot spring	hotspring	温泉・地熱	1	single
+underground thermal mineral water	hotspring	温泉・地熱	1	manual
+unzen hot spring in japan	hotspring	温泉・地熱	1	single
+volcanic hot spring	hotspring	温泉・地熱	1	single
+Volcanic mudflow	hotspring	温泉・地熱	1	single
+volcanic mudflow deposits from mt. pinatubo in the philippines	hotspring	温泉・地熱	1	single
+water and sediment from a terrestrial hot spring	hotspring	温泉・地熱	1	single
+water column of a geothermal spring	hotspring	温泉・地熱	1	single
+water, geothermal power plant	hotspring	温泉・地熱	1	single
+whitisch steamers of the Hveragerthi area	hotspring	温泉・地熱	1	single
+anoxic marine sediment	marine	海洋	1	single
+anoxic marine sediments and stagnant waters containing hydrogen sulfide and exposed to light, marine sponges and other marine invertebrates	marine	海洋	1	manual
+black anoxic sediment of a brackish fjord	marine	海洋	1	single
+brackish water	marine	海洋	1	single
+brackish water (north sea, harbour of husum)	marine	海洋	1	single
+Chimny structure at the Urashima site on the Southern Mariana Trough in the Pacific Ocean	marine	海洋	1	single
+coastal marine sediment	marine	海洋	2	single
+coastal marine sediments	marine	海洋	1	single
+coastal sediment	marine	海洋	2	single
+coastal sediments	marine	海洋	4	single
+coastal surface water	marine	海洋	2	single
+deep-sea sediment sample from the south china sea	marine	海洋	1	single
+estuarine mud	marine	海洋	2	single
+estuarine water	marine	海洋	1	single
+estuary of white sea	marine	海洋	1	single
+from marine ciliate Metopus contortus	marine	海洋	1	single
+hot marine sediment	marine	海洋	2	single
+hot marine sediments	marine	海洋	1	single
+hot marine water	marine	海洋	1	single
+intertidal mud flat	marine	海洋	1	single
+lagoons	marine	海洋	1	single
+long-chain-paraffin-degrading consortium enriched from marine sediments	marine	海洋	1	single
+low-salinity (7.9) sediments of san francisco bay	marine	海洋	1	single
+low-salinity estuarine sediments	marine	海洋	1	single
+malo Jezero on Mljet	marine	海洋	1	single
+mangrove sediments	marine	海洋	2	single
+marine	marine	海洋	2	single
+marine Arctic sediments	marine	海洋	3	single
+marine black mud	marine	海洋	1	single
+marine environments	marine	海洋	1	single
+marine mud	marine	海洋	5	single
+marine sediment	marine	海洋	10	single
+marine sediment samples	marine	海洋	2	single
+Marine sediments	marine	海洋	1	single
+marine sediments	marine	海洋	2	single
+marine spong	marine	海洋	1	single
+marine surface sediment below sea grass	marine	海洋	1	single
+North Atlantic seawater	marine	海洋	1	single
+oil-polluted marine sediment, p-xylene-degrading sulfate-reducing enrichment culture	marine	海洋	2	manual
+pelagic zone, oxic-anoxic interface, 215 m depth	marine	海洋	1	single
+photo-organoheterotrophic enrichment cultures obtained from a mud sample collected from Bhitarkanika mangrove forest	marine	海洋	1	manual
+redox gradient (60 m) in effingham inlet, british columbia, canada	marine	海洋	1	single
+rhizosphere of both species of mangroves	marine	海洋	1	manual
+sea water	marine	海洋	1	single
+seawater	marine	海洋	4	single
+seawater from the gulf of maine	marine	海洋	1	single
+Seaweed	marine	海洋	1	single
+sediment of a brackish lake in northern japan	marine	海洋	1	single
+sediment288 of a brackish lake in japan (lake akkeshi)	marine	海洋	1	single
+shallow water, soft marine sediments	marine	海洋	1	single
+south china sea coastal zone	marine	海洋	1	single
+Sub-seafloor sediment from Four Way Closure Ridge offshore southwestern Taiwan	marine	海洋	1	single
+subseafloor sediment at deformation front area	marine	海洋	1	single
+supralittoral sand of the edmonds city beach, wa, usa	marine	海洋	1	single
+tank containing surface seawater and a block of beef tallow added as organic material	marine	海洋	1	single
+tidal flat sediment	marine	海洋	1	single
+water and sediment collected from a brackish to marine coastal lagoon	marine	海洋	1	single
+water of a brackish lake	marine	海洋	1	single
+acidic, salty water	saline	塩湖・塩性環境	1	single
+alkaline soda lake	saline	塩湖・塩性環境	1	single
+hypersaline lake	saline	塩湖・塩性環境	1	single
+microbial mat from a soda lake	saline	塩湖・塩性環境	1	single
+microbial mat of the chukhyn nur soda lake (northeastern mongolia)	saline	塩湖・塩性環境	1	single
+mixed sediment samples from 8 hypersaline, alkaline lakes	saline	塩湖・塩性環境	1	single
+mixture of sediment samples from different hypersaline soda lakes	saline	塩湖・塩性環境	1	single
+salt flat	saline	塩湖・塩性環境	1	single
+salt lake sediment	saline	塩湖・塩性環境	1	single
+sediment from soda lake	saline	塩湖・塩性環境	1	single
+sediments from a hypersaline lake	saline	塩湖・塩性環境	2	single
+sediments from hypersaline alkaline lakes	saline	塩湖・塩性環境	1	single
+sediments from hypersaline lakes	saline	塩湖・塩性環境	1	single
+sediments from hypersaline soda lake	saline	塩湖・塩性環境	3	single
+sediments from soda lake	saline	塩湖・塩性環境	1	single
+sediments hypersaline lake	saline	塩湖・塩性環境	1	single
+sediments of hypersaline lakes	saline	塩湖・塩性環境	1	single
+sediments of three soda lakes (kunkur steppe, siberia; crater lake and lake nakuru, kenya) and from a soda soil (kunkur steppe, siberia)	saline	塩湖・塩性環境	1	manual
+soda lake	saline	塩湖・塩性環境	4	single
+soda lake Fazdah	saline	塩湖・塩性環境	1	single
+soda lake Magadi	saline	塩湖・塩性環境	1	single
+acidic river sediment	freshwater	淡水	1	single
+anoxic lake water of a stratified freshwater lake	freshwater	淡水	1	single
+bacterial mat from a sulfide spring at 33-40 °C	freshwater	淡水	1	single
+bacterial mat of a sulfide mineral spring	freshwater	淡水	1	single
+bog	freshwater	淡水	1	single
+bog sediment	freshwater	淡水	1	single
+chemocline	freshwater	淡水	1	single
+chemocline material	freshwater	淡水	2	single
+deep cold sediment of meromictic lake	freshwater	淡水	1	single
+Doroninskoe Lake	freshwater	淡水	1	single
+duck pond sediment	freshwater	淡水	1	single
+eutrophic lake Le Loclat	freshwater	淡水	1	single
+eutrophic lake water	freshwater	淡水	1	single
+ferruginous meromictic lake	freshwater	淡水	1	single
+fresh water lake in Shillong	freshwater	淡水	1	single
+freshwater	freshwater	淡水	3	single
+freshwater (river, lake, pond)	freshwater	淡水	1	single
+freshwater lake	freshwater	淡水	1	single
+freshwater lake sediment	freshwater	淡水	4	single
+freshwater mud	freshwater	淡水	2	single
+freshwater sediment (river, lake, pond)	freshwater	淡水	1	single
+freshwater stream	freshwater	淡水	1	single
+Groundwater from a basement tile drain in East Lansing	freshwater	淡水	1	single
+groundwater of rock tunnel at 70 m depth.	freshwater	淡水	1	single
+Groundwater sediment	freshwater	淡水	1	single
+highly alkaline spring	freshwater	淡水	3	single
+iron-rich floc from a groundwater seep	freshwater	淡水	1	single
+khoito-gol hydrogen-sulfide springs, buryatia	freshwater	淡水	1	single
+lake	freshwater	淡水	1	single
+lake kinneret, a monomictic, freshwater lake in israel	freshwater	淡水	1	single
+lake malyi kasytui located in the chita region of south-east siberia, russia	freshwater	淡水	1	single
+lake O'Grady	freshwater	淡水	1	single
+lake water	freshwater	淡水	1	single
+lake water taken from a meromictic lake	freshwater	淡水	1	single
+meromictic lake	freshwater	淡水	1	single
+meromictic lake in germany	freshwater	淡水	1	single
+mesotrophic Siberian fen as a component of methanogenic consortia	freshwater	淡水	1	single
+mud at the bank of a freshwater stream	freshwater	淡水	1	single
+Octopus Spring	freshwater	淡水	1	single
+peat bog	freshwater	淡水	1	single
+peat sediment from the fe-rich, moderately acidic schlöppnerbrunnen fen (northern bavaria, germany)	freshwater	淡水	1	single
+pond water	freshwater	淡水	1	single
+Reed (Phragmites australis) pond water in Shangqiu	freshwater	淡水	1	single
+river sediment	freshwater	淡水	1	single
+rivermouth	freshwater	淡水	1	single
+runoff channel of bore well	freshwater	淡水	1	single
+sandy lake sediment collected from green lake, seattle, wa, usa	freshwater	淡水	1	single
+sediment from a meromictic lake located in a residential area	freshwater	淡水	1	single
+sediment of a freshwater lake	freshwater	淡水	1	single
+sediment of a freshwater pond in Gujarat	freshwater	淡水	1	single
+sediment of acidic pond	freshwater	淡水	1	single
+shallow site of a low-temperature carstic lake	freshwater	淡水	1	single
+slightly acidic (ph 6.3), fe-rich, amd-impacted creek sediments	freshwater	淡水	1	single
+Soap Lake	freshwater	淡水	1	single
+spring of caucuses	freshwater	淡水	1	single
+stratified freshwater lake	freshwater	淡水	1	single
+sulfide spring	freshwater	淡水	1	single
+sulfidic spring in goryachy klyuch, krasnodar, russia	freshwater	淡水	1	single
+thermophilic spring	freshwater	淡水	1	single
+Thioploca sample from the sediment of a freshwater lake	freshwater	淡水	1	single
+water_hotspring	freshwater	淡水	2	single
+2.7 km deep terrestrial subsurface	subsurface	地下・油田	1	single
+a subsurface hot aquifer water	subsurface	地下・油田	1	single
+anaerobic sediment a of subsurface lake	subsurface	地下・油田	1	single
+deep aquifer	subsurface	地下・油田	1	single
+deep aquifer water from a Miocene diatomaceous hard shale (Wakkanai formation)	subsurface	地下・油田	1	single
+deep aquifer water from an oligotrophic gas storage aquifer contaminated with BTEX (benzene, toluene, ethylbenzene and xylenes) at a depth of 760 m	subsurface	地下・油田	1	single
+deep oil-fields	subsurface	地下・油田	1	single
+drain water from an underground crude-oil storage cavity	subsurface	地下・油田	1	single
+floating biofilm of a sulphurous subsurface lake	subsurface	地下・油田	1	single
+formation water, oil reservoir	subsurface	地下・油田	1	single
+highly mineralized stratal water of an oil field	subsurface	地下・油田	1	single
+oil polluted sediment of operation station of ballast water and tank water cleanning	subsurface	地下・油田	1	single
+petroleum	subsurface	地下・油田	1	single
+reduced water from borehole 4e in chazhemto	subsurface	地下・油田	1	single
+slop tank from an oil platform	subsurface	地下・油田	1	single
+subsurface rock layers	subsurface	地下・油田	1	single
+water, oil-bearing deposits	subsurface	地下・油田	1	single
+acid mine drainage	mine	鉱山・酸性排水	1	single
+acid mine drainage sediment	mine	鉱山・酸性排水	1	single
+bacterial fouling in the outflow of hydrogen sulfide-containing waters from a coal mine	mine	鉱山・酸性排水	1	single
+coal spoil	mine	鉱山・酸性排水	1	single
+coal spoil enrichment culture K of P. Norris, Univ. of Warwick	mine	鉱山・酸性排水	1	manual
+korean soil (ph 3.2) contaminated with acid mine drainage water	mine	鉱山・酸性排水	1	manual
+matahambre mine (cuba)	mine	鉱山・酸性排水	1	single
+metal mine-impacted environments	mine	鉱山・酸性排水	1	single
+Mine tailings	mine	鉱山・酸性排水	1	single
+mine wastes in brazil	mine	鉱山・酸性排水	1	single
+mine water	mine	鉱山・酸性排水	1	single
+mine-drainage sample	mine	鉱山・酸性排水	1	single
+ore, uranium mine	mine	鉱山・酸性排水	1	single
+oxidizing lead-zinc ores	mine	鉱山・酸性排水	1	single
+subsurface hot aquifer water in the Hishikari gold mine	mine	鉱山・酸性排水	1	manual
+sulphide gold-containing concentrat	mine	鉱山・酸性排水	1	single
+uranium mine	mine	鉱山・酸性排水	1	single
+wastes of salt mine	mine	鉱山・酸性排水	1	manual
+a co-culture of strain PB with Methanothermobacter thermautotrophicus (DSM 12269)	engineered	排水・人工環境・培養	1	single
+a tropical marine fish tank at the Seattle Aquarium in Seattle	engineered	排水・人工環境・培養	1	manual
+activated sludge	engineered	排水・人工環境・培養	3	single
+Activated sludge	engineered	排水・人工環境・培養	1	single
+activated sludge from treatment plant	engineered	排水・人工環境・培養	1	single
+activated sludge of a sewage purification system	engineered	排水・人工環境・培養	1	single
+activated sludge of a sewage purification system of the Baikal paper mill	engineered	排水・人工環境・培養	1	single
+activated sludge of an industrial sewage plant	engineered	排水・人工環境・培養	1	single
+active sludge collected from a wastewater treatment plant in harbin, pr china	engineered	排水・人工環境・培養	1	single
+agricultural lagoon	engineered	排水・人工環境・培養	1	manual
+anaerobic digester	engineered	排水・人工環境・培養	1	single
+anaerobic granular sludge	engineered	排水・人工環境・培養	1	single
+anaerobic sewage digester	engineered	排水・人工環境・培養	3	single
+anodic biofilms of an acetate-fed microbial fuel cell	engineered	排水・人工環境・培養	1	single
+anoxic crude oil tank sludge	engineered	排水・人工環境・培養	1	manual
+bioreactor	engineered	排水・人工環境・培養	3	single
+decantation tank of zink factory	engineered	排水・人工環境・培養	1	single
+denitrifying, sulfide-oxidizing effluent-treatment plant	engineered	排水・人工環境・培養	1	single
+derived from culture of Thiobacillus ferrooxidans, strain TM (D.G. Lundgren, Syracuse University, NY, USA)	engineered	排水・人工環境・培養	1	single
+Disintegrated concrete in sewer	engineered	排水・人工環境・培養	1	single
+enrichment culture	engineered	排水・人工環境・培養	1	single
+granulated biomass of an anaerobic expanded granular sludge bed bioreactor operated at low temperature	engineered	排水・人工環境・培養	1	single
+industrial sludge	engineered	排水・人工環境・培養	1	single
+industrially synthesized lead (II) sulfide	engineered	排水・人工環境・培養	1	single
+lab-scale membrane bioreactor	engineered	排水・人工環境・培養	1	single
+marine aquaculture pond	engineered	排水・人工環境・培養	1	manual
+methanogenic digestor fed with cassava peel	engineered	排水・人工環境・培養	1	single
+municipal WWTP	engineered	排水・人工環境・培養	1	single
+paper mill sewage	engineered	排水・人工環境・培養	1	single
+partially corroded area of an iron pipe of a heating system in moscow, russia	engineered	排水・人工環境・培養	1	single
+pelleted cells from reactor effluent	engineered	排水・人工環境・培養	1	single
+phosphate buffer	engineered	排水・人工環境・培養	1	single
+piggery waste	engineered	排水・人工環境・培養	1	single
+sewage	engineered	排水・人工環境・培養	1	single
+Sewage	engineered	排水・人工環境・培養	1	single
+sewage digester	engineered	排水・人工環境・培養	1	single
+sewage plant	engineered	排水・人工環境・培養	1	single
+sewage sludge	engineered	排水・人工環境・培養	4	single
+sewage sludge samples enriched with elemental sulfur	engineered	排水・人工環境・培養	2	single
+sludge of a methane tank	engineered	排水・人工環境・培養	1	single
+sludge, metacrilic wastes digester	engineered	排水・人工環境・培養	2	single
+sludge, UASB reactor	engineered	排水・人工環境・培養	1	single
+sour mash	engineered	排水・人工環境・培養	1	single
+sugar beet leaf silage	engineered	排水・人工環境・培養	1	single
+The liquid medium of a hybrid biological-inorganic system reactor	engineered	排水・人工環境・培養	1	single
+thermophilic digester sludge	engineered	排水・人工環境・培養	1	single
+thermophilic production-scale biogas fermenter	engineered	排水・人工環境・培養	1	single
+thermophilic sulfate reducing bioreactor	engineered	排水・人工環境・培養	1	single
+tyre shreds or leachate	engineered	排水・人工環境・培養	1	single
+waste water	engineered	排水・人工環境・培養	1	single
+wastewater	engineered	排水・人工環境・培養	1	single
+wastewater treatment plant	engineered	排水・人工環境・培養	1	single
+wastewater-treatment plants	engineered	排水・人工環境・培養	2	single
+water sample of a marine aquaculture fish pond	engineered	排水・人工環境・培養	1	manual
+acid agricultural soil	soil	土壌・植物	1	single
+acidic soil	soil	土壌・植物	2	single
+acidic soil at sulfur stockpile	soil	土壌・植物	1	single
+aerobic soils	soil	土壌・植物	1	single
+agricultural plot	soil	土壌・植物	1	single
+agricultural soil	soil	土壌・植物	1	single
+allotment garden soil	soil	土壌・植物	2	single
+ancient (3 million years old) permafrost sediments	soil	土壌・植物	1	single
+annual medicago spp	soil	土壌・植物	1	single
+bulk soil of a temperate orchard	soil	土壌・植物	1	single
+contaminated soil	soil	土壌・植物	1	single
+covering soil taken from burning charcoal piles in the upper Franconian Mountains	soil	土壌・植物	1	single
+dichloromethane contaminated soil	soil	土壌・植物	1	single
+eastern Cotton Wood tree, wetwood	soil	土壌・植物	2	single
+egyptian soil	soil	土壌・植物	1	single
+garden soil	soil	土壌・植物	1	single
+Holocene permafrost sediments	soil	土壌・植物	1	single
+Lawn soil	soil	土壌・植物	1	single
+marsh soil	soil	土壌・植物	1	manual
+neutral ph agricultural soil	soil	土壌・植物	1	single
+paddy field soil	soil	土壌・植物	1	single
+Rhizopheric soil of canola	soil	土壌・植物	1	single
+Rhizosphere of a flooded paddy field near Eluru	soil	土壌・植物	1	single
+rhizosphere soil of the Indian tropical leguminous plant Clitoria ternatea	soil	土壌・植物	1	single
+rhizospheric soil associated with bacopa monnieri	soil	土壌・植物	1	single
+rice paddy soil under denitrification-inducing conditions	soil	土壌・植物	1	single
+ricefield soil	soil	土壌・植物	1	single
+root balls of tagetes plants	soil	土壌・植物	1	single
+root nodules of Sesbania virgata (Caz.) Pers.	soil	土壌・植物	1	single
+roots of diseased white mulberry plant Morus alba L.	soil	土壌・植物	1	single
+Roots of Sonchus arvensis	soil	土壌・植物	1	single
+roots of wheat	soil	土壌・植物	1	single
+saturated soil adjacent to a livestock pen	soil	土壌・植物	1	single
+seasonally frozen forest soil	soil	土壌・植物	1	single
+seeds	soil	土壌・植物	1	single
+soil	soil	土壌・植物	17	single
+soil adjacent to the roots of the plant Clitoria ternatea, a native legume of the lower-Gangetic plains of India (a slender under shrub or herb)	soil	土壌・植物	1	single
+soil contaminated with creosote	soil	土壌・植物	1	single
+soil from the old botanical garden in hamburg, germany	soil	土壌・植物	1	single
+soil in japan	soil	土壌・植物	1	single
+soil of beech forest	soil	土壌・植物	1	single
+soil_arid	soil	土壌・植物	1	single
+stem of rice straw	soil	土壌・植物	1	single
+tundra wetland soil	soil	土壌・植物	1	manual
+vegetable soil	soil	土壌・植物	1	single
+West Spitsbergen permafrost	soil	土壌・植物	1	single
+australian common wombat (vombatus ursinus)	host	宿主関連	1	single
+australian mahogany glider (petaurus gracilis)	host	宿主関連	1	single
+black band disease of scleractinian corals from the coast of florida	host	宿主関連	1	manual
+bovine rumen	host	宿主関連	1	single
+bronchial aspiration	host	宿主関連	1	single
+cattle manure	host	宿主関連	1	single
+clinical isolate	host	宿主関連	1	single
+cow's milk	host	宿主関連	1	single
+feces	host	宿主関連	1	single
+gill tissue	host	宿主関連	1	single
+gills of Thyasira flexuosa	host	宿主関連	2	single
+guinea pigs with tuberculosis arrested by chemotherapy	host	宿主関連	1	single
+gut, termite, Pterotermes occidentis	host	宿主関連	1	single
+hindgut of termite Reticulitermes flavipes	host	宿主関連	1	single
+horse faeces	host	宿主関連	1	single
+human feces	host	宿主関連	1	single
+human intestinal content	host	宿主関連	1	single
+intestinal contents of termite Nasutitermes nigriceps	host	宿主関連	1	single
+Intestinal contents of white rats	host	宿主関連	1	single
+mussel habitat sediment	host	宿主関連	1	single
+pathologic material	host	宿主関連	1	single
+rabbit faeces	host	宿主関連	1	single
+rumen of suckling lamb	host	宿主関連	1	single
+synovial fluid and tissue	host	宿主関連	2	single
+The hindgut of the millipede Centrobolus splendidus	host	宿主関連	1	single
+acidic sediment	sediment	堆積物・泥（詳細不明）	1	single
+algal-bacterial mat	sediment	堆積物・泥（詳細不明）	1	single
+alkaline sediment slurry	sediment	堆積物・泥（詳細不明）	1	single
+anoxic sediment	sediment	堆積物・泥（詳細不明）	1	single
+anoxic sediments	sediment	堆積物・泥（詳細不明）	1	single
+As- and Sb-contaminated sediment	sediment	堆積物・泥（詳細不明）	1	single
+ditch mud	sediment	堆積物・泥（詳細不明）	1	single
+ditch sediment	sediment	堆積物・泥（詳細不明）	1	single
+Kimmeridge clay	sediment	堆積物・泥（詳細不明）	1	single
+microbial mat	sediment	堆積物・泥（詳細不明）	1	single
+Microbial mat	sediment	堆積物・泥（詳細不明）	1	single
+mixed sample of sediment and water	sediment	堆積物・泥（詳細不明）	1	single
+mud	sediment	堆積物・泥（詳細不明）	4	single
+mud and water sample	sediment	堆積物・泥（詳細不明）	1	single
+oxidized surface sediment from eel grass (Zostera noltii) mud flat	sediment	堆積物・泥（詳細不明）	1	single
+rock_deep	sediment	堆積物・泥（詳細不明）	1	single
+sediment	sediment	堆積物・泥（詳細不明）	1	single
+sediments	sediment	堆積物・泥（詳細不明）	1	single
+Thioploca mat	sediment	堆積物・泥（詳細不明）	1	single
+Weathered rock sample	sediment	堆積物・泥（詳細不明）	1	single
+gas condensate water from gas deposits	water	水（詳細不明）	1	single
+oxygen-sulfide interface water	water	水（詳細不明）	1	single
+water	water	水（詳細不明）	3	single
+water column oxic-anoxic transition zone	water	水（詳細不明）	2	single
+water enriched for hydrogen bacteria	water	水（詳細不明）	1	single
+water sample	water	水（詳細不明）	1	single
+water, haemodialysis	water	水（詳細不明）	1	single
+Environmetal	other	その他	1	unclassified
+plant associated	other	その他	1	unclassified
+snow	other	その他	1	unclassified
+the air at the foot of the xiangshan mountain in beijing, china	other	その他	1	unclassified
+diverse soil spots at the solfatara crater, which is at the center of the campi flegrei caldera, near naples (italy)	geothermal_soil	地熱土壌	1	combined
+Environment, Soil around hot spring	geothermal_soil	地熱土壌	1	combined
+geothermal soil at the solfatara in italy	geothermal_soil	地熱土壌	1	combined
+geothermally heated soil	geothermal_soil	地熱土壌	1	combined
+new zealand methane-emitting geothermally heated soil	geothermal_soil	地熱土壌	1	combined
+soil samples with low ph at the solfatara crater, near naples, italy	geothermal_soil	地熱土壌	1	combined
+solfataric soil	geothermal_soil	地熱土壌	1	combined
+volcanic soil on pantelleria island, italy	geothermal_soil	地熱土壌	1	combined
+flat, laminated microbial mat in a salt marsh near woods hole, massachusetts, usa	salt_marsh	塩性湿地・沿岸塩性環境	1	combined
+salt lagoon, sardinia, italy	salt_marsh	塩性湿地・沿岸塩性環境	1	combined
+salt marsh	salt_marsh	塩性湿地・沿岸塩性環境	1	combined
+salt marsh sediments	salt_marsh	塩性湿地・沿岸塩性環境	1	combined
+water from salt marsh pool	salt_marsh	塩性湿地・沿岸塩性環境	1	combined
+chicken yard waste	livestock_waste	家畜排泄物・堆肥	1	combined
+composted cattle manure	livestock_waste	家畜排泄物・堆肥	1	combined
+full-scale commercial biogas plant fed with maize silage, cattle manure and dry poultry feces	livestock_waste	家畜排泄物・堆肥	1	combined
+sludge from a commercial biogas plant mainly fed with maize silage, cattle manure and dry poultry faeces	livestock_waste	家畜排泄物・堆肥	1	combined
+anaerobic sediment, paper mill waste water polluted pond	polluted_freshwater	汚染された淡水・人工水域	1	combined
+Freshwater aquarium biofilter	polluted_freshwater	汚染された淡水・人工水域	1	combined
+freshwater spring contaminated with residential and agricultural wastewater in moscow region, russia	polluted_freshwater	汚染された淡水・人工水域	1	manual
+sludge of the river mulde	polluted_freshwater	汚染された淡水・人工水域	1	combined
+black rust formed on the steel surface of a seafloor borehole observatory (ODP CORK 1026B) exposed to hot ridge flank crustal fluids (64°C, water depth 2658 m)	marine_subsurface	海底下・海洋油田	1	combined
+marine petroleum reservoir	marine_subsurface	海底下・海洋油田	1	combined
+marine subsurface sediment at a depth of 2.5 m from a tidal sand-flat	marine_subsurface	海底下・海洋油田	1	combined

@@ -116,7 +116,7 @@ class CliTest(unittest.TestCase):
             )
             out = root / "out"
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(main(["scan", "-i", str(root / "in"), "-o", str(out), "--no-taxonomy", "--no-electron-db",
+                self.assertEqual(main(["scan", "-i", str(root / "in"), "-o", str(out), "--no-taxonomy", "--no-phenotype",
                                        "-c", str(configs[0]), "-c", str(configs[1])]), 0)
             summary = {line.split("\t")[0]: line.split("\t") for line in (out / "ko_summary.tsv").read_text(encoding="utf-8").splitlines()[1:]}
             self.assertEqual(list(summary), ["K00394", "K00958", "K02274", "K02275"])
@@ -128,7 +128,7 @@ class CliTest(unittest.TestCase):
             self.assertEqual(used.count("\tacceptor\t"), 3)
             # render-html reads the combined copy back, roles included
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(main(["render-html", "-i", str(out), "--no-taxonomy", "--no-electron-db"]), 0)
+                self.assertEqual(main(["render-html", "-i", str(out), "--no-taxonomy", "--no-phenotype"]), 0)
             columns = embedded_data((out / "report.html").read_text(encoding="utf-8"))["columns"]
             self.assertEqual([(c["ko"], c["role"]) for c in columns],
                              [("K00394", "donor"), ("K00958", "donor"), ("K00958", "acceptor"), ("K02274", "acceptor"), ("K02275", "acceptor")])
@@ -162,7 +162,7 @@ class CliTest(unittest.TestCase):
             with contextlib.redirect_stdout(stdout), self.assertLogs("ko_detector", "WARNING"):
                 self.assertEqual(
                     main(["scan", "-i", str(root / "in"), "-o", str(out), "-c", str(config), "--title-en", "My report",
-                          "--no-taxonomy", "--no-electron-db"]),
+                          "--no-taxonomy", "--no-phenotype"]),
                     0,
                 )
             self.assertIn("Genomes: 1 analysed, 1 excluded", stdout.getvalue())
@@ -197,6 +197,6 @@ class CliTest(unittest.TestCase):
 
             rendered = root / "rendered"
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertEqual(main(["render-html", "-i", str(out), "-o", str(rendered), "--no-taxonomy", "--no-electron-db"]), 0)
+                self.assertEqual(main(["render-html", "-i", str(out), "-o", str(rendered), "--no-taxonomy", "--no-phenotype"]), 0)
             self.assertEqual(sorted(p.name for p in rendered.iterdir()), ["report.html", "report_en.html"])
             self.assertIn("GCF_000000001.1", (rendered / "report_en.html").read_text(encoding="utf-8"))

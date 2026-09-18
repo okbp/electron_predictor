@@ -7,20 +7,22 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, TextIO
+from typing import Dict, List, Optional, Sequence, TextIO, Tuple
 
 from . import __version__
-from .electron_db import ElectronRecord, read_electron_db
 from .html_report import REPORT_FILES, write_reports
 from .kofam import DEFAULT_PATTERN, GENOME_DIR_PREFIX, scan_directory
 from .models import GenomeResult, KoEntry
+from .phenotype import ElectronRecord, GenomePhenotype, read_phenotype, read_tables
 from .reference import read_configs, read_references, searchable_kos, write_config
 from .results_io import (
     CONFIG_COPY_FILE,
     ELECTRON_CATEGORIES_FILE,
     GENOME_TAXONOMY_FILE,
+    PHENOTYPE_FILE,
     read_electron_categories,
     read_genome_taxonomy,
+    read_phenotypes,
     read_results,
     read_run_info,
     write_scan_outputs,
@@ -34,8 +36,12 @@ logger = logging.getLogger("ko_detector")
 DEFAULT_RESULTS_DIR = Path("data") / "results"
 # Taxonomy downloaded by scripts/setup_taxonomy.py; used for the tree when present.
 DEFAULT_TAXONOMY_DIR = Path("data") / "taxonomy"
-# Curated electron donor / acceptor database; its categories are shown in the report when present.
-DEFAULT_ELECTRON_DB = Path("data") / "electron" / "electron_donor_acceptor_DATABASE_with_genome.tsv"
+# Per-organism phenotypes and electron donors / acceptors; shown in the report when present.
+DEFAULT_PHENOTYPE = Path("data") / "electron" / "phenotype_data.tsv"
+# Reviewed tables that turn phenotype_data.tsv values into report categories.
+DEFAULT_PHENOTYPE_TABLES = Path("config")
+
+Phenotype = Tuple[Optional[Dict[str, GenomePhenotype]], Optional[Dict[str, List[ElectronRecord]]]]
 
 
 def _load_entries(configs: Optional[List[Path]], references: Optional[List[Path]]) -> List[KoEntry]:
@@ -90,22 +96,25 @@ def _load_taxonomy(args: argparse.Namespace, results: Sequence[GenomeResult]) ->
     return load_genome_taxonomy(directory, [result.genome_id for result in results if result.is_valid])
 
 
-def _load_electron(args: argparse.Namespace, results: Sequence[GenomeResult]) -> Optional[Dict[str, List[ElectronRecord]]]:
-    if args.no_electron_db:
-        return None
-    path = args.electron_db
+def _load_phenotype(args: argparse.Namespace, results: Sequence[GenomeResult]) -> Phenotype:
+    if args.no_phenotype:
+        return None, None
+    path = args.phenotype
     if path is None:
-        if not DEFAULT_ELECTRON_DB.is_file():
-            logger.info("no electron database at %s; reports are written without categories", DEFAULT_ELECTRON_DB)
-            return None
-        path = DEFAULT_ELECTRON_DB
+        if not DEFAULT_PHENOTYPE.is_file():
+            logger.info("no phenotype data at %s; reports are written without phenotypes / categories", DEFAULT_PHENOTYPE)
+            return None, None
+        path = DEFAULT_PHENOTYPE
     elif not path.is_file():
-        raise ValueError(f"electron database not found: {path}")
-    logger.info("reading electron categories from %s", path)
-    records = read_electron_db(path)
+        raise ValueError(f"phenotype data not found: {path}")
+    logger.info("reading phenotypes and electron donors / acceptors from %s", path)
+    phenotypes, electron = read_phenotype(path, read_tables(args.phenotype_tables))
     scanned = {result.genome_id for result in results if result.is_valid}
-    logger.info("electron database: %d genome(s), %d of the scanned genomes", len(records), len(scanned & set(records)))
-    return {genome_id: rows for genome_id, rows in records.items() if genome_id in scanned}
+    logger.info("phenotype data: %d genome(s), %d of the scanned genomes", len(phenotypes), len(scanned & set(phenotypes)))
+    return (
+        {genome_id: value for genome_id, value in phenotypes.items() if genome_id in scanned},
+        {genome_id: rows for genome_id, rows in electron.items() if genome_id in scanned},
+    )
 
 
 def cmd_build_config(args: argparse.Namespace) -> int:
@@ -136,7 +145,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
     summaries = summarize(entries, results)
     taxonomy = _load_taxonomy(args, results)
-    electron = _load_electron(args, results)
+    phenotypes, electron = _load_phenotype(args, results)
     run_info = {
         "tool": f"ko_detector {__version__}",
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -146,13 +155,15 @@ def cmd_scan(args: argparse.Namespace) -> int:
         "config": [str(path) for path in args.config] if args.config else None,
         "reference": [str(path) for path in args.reference] if args.reference else None,
         "taxonomy": taxonomy is not None,
-        "electron_db": str(args.electron_db or DEFAULT_ELECTRON_DB) if electron is not None else None,
+        "phenotype": str(args.phenotype or DEFAULT_PHENOTYPE) if phenotypes is not None else None,
         "n_genome_dirs": len(results),
         "n_genomes_analysed": sum(result.is_valid for result in results),
     }
-    paths = write_scan_outputs(args.output_dir, entries, results, summaries, run_info, taxonomy, electron)
+    paths = write_scan_outputs(args.output_dir, entries, results, summaries, run_info, taxonomy, electron, phenotypes)
     if not args.no_html:
-        reports = write_reports(args.output_dir, entries, results, run_info, _report_titles(args), taxonomy, electron)
+        reports = write_reports(
+            args.output_dir, entries, results, run_info, _report_titles(args), taxonomy, electron, phenotypes
+        )
         paths.update({path.name: path for path in reports.values()})
 
     _print_summary(results, summaries, sys.stdout)
@@ -169,14 +180,15 @@ def cmd_render_html(args: argparse.Namespace) -> int:
         taxonomy = read_genome_taxonomy(taxonomy_file)
     else:
         taxonomy = _load_taxonomy(args, results)
+    phenotype_file = args.results_dir / PHENOTYPE_FILE
     electron_file = args.results_dir / ELECTRON_CATEGORIES_FILE
-    if not args.no_electron_db and args.electron_db is None and electron_file.is_file():
-        electron = read_electron_categories(electron_file)
+    if not args.no_phenotype and args.phenotype is None and phenotype_file.is_file() and electron_file.is_file():
+        phenotypes, electron = read_phenotypes(phenotype_file), read_electron_categories(electron_file)
     else:
-        electron = _load_electron(args, results)
+        phenotypes, electron = _load_phenotype(args, results)
     output_dir = args.output_dir or args.results_dir
     reports = write_reports(
-        output_dir, entries, results, read_run_info(args.results_dir), _report_titles(args), taxonomy, electron
+        output_dir, entries, results, read_run_info(args.results_dir), _report_titles(args), taxonomy, electron, phenotypes
     )
     for path in reports.values():
         print(f"Wrote {path}")
@@ -194,10 +206,13 @@ def _add_taxonomy_arguments(parser: argparse.ArgumentParser, default_help: str) 
     parser.add_argument("--no-taxonomy", action="store_true", help="do not add the taxonomy tree")
 
 
-def _add_electron_arguments(parser: argparse.ArgumentParser, default_help: str) -> None:
-    parser.add_argument("--electron-db", type=Path,
-                        help=f"electron donor / acceptor database for category columns (default: {default_help})")
-    parser.add_argument("--no-electron-db", action="store_true", help="do not add donor / acceptor category columns")
+def _add_phenotype_arguments(parser: argparse.ArgumentParser, default_help: str) -> None:
+    parser.add_argument("--phenotype", type=Path,
+                        help=f"phenotype_data.tsv for the phenotype and donor / acceptor category columns (default: {default_help})")
+    parser.add_argument("--phenotype-tables", type=Path, default=DEFAULT_PHENOTYPE_TABLES,
+                        help="directory with electron_compound_categories.tsv, phenotype_corrections.tsv and "
+                             f"habitat_classes.tsv (default: {DEFAULT_PHENOTYPE_TABLES})")
+    parser.add_argument("--no-phenotype", action="store_true", help="do not add phenotype / category columns")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -234,7 +249,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="count only rows marked '*' (default: every row counts as present)")
     p.add_argument("--no-html", action="store_true", help=f"do not write {' / '.join(REPORT_FILES.values())}")
     _add_taxonomy_arguments(p, f"{DEFAULT_TAXONOMY_DIR} when present")
-    _add_electron_arguments(p, f"{DEFAULT_ELECTRON_DB} when present")
+    _add_phenotype_arguments(p, f"{DEFAULT_PHENOTYPE} when present")
     _add_title_arguments(p)
     p.set_defaults(func=cmd_scan)
 
@@ -245,7 +260,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output-dir", type=Path,
                    help=f"directory for {' / '.join(REPORT_FILES.values())} (default: <results-dir>)")
     _add_taxonomy_arguments(p, f"<results-dir>/{GENOME_TAXONOMY_FILE}, else {DEFAULT_TAXONOMY_DIR} when present")
-    _add_electron_arguments(p, f"<results-dir>/{ELECTRON_CATEGORIES_FILE}, else {DEFAULT_ELECTRON_DB} when present")
+    _add_phenotype_arguments(p, f"<results-dir>/{PHENOTYPE_FILE}, else {DEFAULT_PHENOTYPE} when present")
     _add_title_arguments(p)
     p.set_defaults(func=cmd_render_html)
     return parser

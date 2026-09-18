@@ -1,0 +1,64 @@
+# electron donor / acceptor token (as written in phenotype_data.tsv) -> category shown in the report
+# seeded from the compound -> category mapping of the former electron database; tokens without one are Other
+role	token	category	compound
+donor	As(III) arsenite	Other	arsenite
+donor	CO carbon monoxide	Carbon monoxide oxidizing bacteria (carboxydotrophs)	carbon monoxide
+donor	COS carbonyl sulfide	Sulfur oxidizing bacteria	carbonyl sulfide
+donor	CS2 carbon disulfide	Sulfur oxidizing bacteria	carbon disulfide
+donor	Cu(I)	Other	copper(i)
+donor	Fe(0) zero-valent iron	Iron oxidizing bacteria	zero-valent iron
+donor	Fe(II)	Iron oxidizing bacteria	iron(ii) / ferrous iron
+donor	formate	Other	formate
+donor	H2 hydrogen	Hydrogen oxidizing bacteria	hydrogen
+donor	H2S/HS- sulfide	Sulfur oxidizing bacteria	sulfide
+donor	HPO3(2-) phosphite	Other	phosphite
+donor	metal sulfide minerals	Iron oxidizing bacteria	metal sulfide minerals
+donor	methane	Other	methane
+donor	Mn(II)	Other	manganese(ii)
+donor	N2H4 hydrazine	Other	hydrazine
+donor	NH2OH hydroxylamine	Ammonia oxidizing bacteria	hydroxylamine
+donor	NH3/NH4+ ammonia/ammonium	Ammonia oxidizing bacteria	ammonia/ammonium
+donor	NO2- nitrite	Nitrite oxidizing bacteria	nitrite
+donor	NO3- nitrate	Other	nitrate
+donor	polysulfide	Sulfur oxidizing bacteria	polysulfide
+donor	polythionates	Sulfur oxidizing bacteria	polythionates
+donor	S0 elemental sulfur	Sulfur oxidizing bacteria	elemental sulfur
+donor	S2O3(2-) thiosulfate	Sulfur oxidizing bacteria	thiosulfate
+donor	S2O6(2-) dithionate	Sulfur oxidizing bacteria	dithionate
+donor	S3O6(2-) trithionate	Sulfur oxidizing bacteria	trithionate
+donor	S4O6(2-) tetrathionate	Sulfur oxidizing bacteria	tetrathionate
+donor	Sb(III) antimonite	Other	antimonite
+donor	SCN- thiocyanate	Sulfur oxidizing bacteria	thiocyanate
+donor	SO3(2-) sulfite	Sulfur oxidizing bacteria	sulfite
+donor	SO4(2-) sulfate	Other	sulfate
+donor	sulfur compounds (unspecified)	Sulfur oxidizing bacteria	sulfur compounds (unspecified)
+donor	Ti(III) titanium(III)	Other	titanium(iii)
+donor	U(IV) uranium	Other	uranium(iv)
+acceptor	As(V) arsenate	Other	arsenate
+acceptor	ClO3- chlorate	Other	perchlorate/chlorate
+acceptor	ClO4- perchlorate	Other	perchlorate/chlorate
+acceptor	CO carbon monoxide	Other	carbon monoxide
+acceptor	CO2 carbon dioxide	Methanogens / Acetogens	carbon dioxide
+acceptor	Cr(VI) chromate	Other	chromate
+acceptor	Fe(III)	Iron-reducing bacteria (FeRB)	iron(iii) / ferric iron
+acceptor	H2 hydrogen	Other	hydrogen
+acceptor	Mn(III/IV)	Other	manganese(iv)
+acceptor	Mn(IV)	Other	manganese(iv)
+acceptor	N2O nitrous oxide	Nitrate-reducing bacteria (denitrifiers / DNRA)	nitrous oxide
+acceptor	NO nitric oxide	Nitrate-reducing bacteria (denitrifiers / DNRA)	nitric oxide
+acceptor	NO2 (gas) nitrogen dioxide	Other	nitrogen dioxide
+acceptor	NO2- nitrite	Nitrate-reducing bacteria (denitrifiers / DNRA)	nitrite
+acceptor	NO3- nitrate	Nitrate-reducing bacteria (denitrifiers / DNRA)	nitrate
+acceptor	O2 oxygen	Aerobes / aerobic respiration	oxygen
+acceptor	polysulfide	Sulfur-reducing bacteria	polysulfide
+acceptor	S0 elemental sulfur	Sulfur-reducing bacteria	elemental sulfur
+acceptor	S2O3(2-) thiosulfate	Sulfate-reducing bacteria (SRB)	thiosulfate
+acceptor	S4O6(2-) tetrathionate	Sulfur-reducing bacteria	tetrathionate
+acceptor	Se(IV) selenite	Other	selenite
+acceptor	Se(VI) selenate	Other	selenate
+acceptor	SO3(2-) sulfite	Sulfate-reducing bacteria (SRB)	sulfite
+acceptor	SO4(2-) sulfate	Sulfate-reducing bacteria (SRB)	sulfate
+acceptor	sulfur compounds (unspecified)	Sulfur-reducing bacteria	sulfur compounds (unspecified)
+acceptor	tellurite/tellurate	Other	tellurite/tellurate
+acceptor	U(VI) uranium	Other	uranium(vi)
+acceptor	V(V) vanadate	Other	vanadate

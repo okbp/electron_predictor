@@ -12,7 +12,7 @@
     --hairline: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
     --hit: #16805f; --weak: #8fcdb5; --empty: rgba(11,11,11,0.05);
     --hit-acc: #d4640f; --weak-acc: #f4c39a; --bar-acc: #e0914f;
-    --btn-don: #16805f; --btn-acc: #b9560c;
+    --btn-don: #16805f; --btn-acc: #b9560c; --btn-ph: #5d5a52; --ph: #8a877d;
     --bar: #6f9f8b; --zero: #c9c7bf; --cross: rgba(42,120,214,0.16);
     --link: #a9a8a1; --band: rgba(11,11,11,0.035);
     --accent: #2a78d6; --pin: #e34948;
@@ -24,7 +24,7 @@
       --text: #ffffff; --text2: #c3c2b7; --muted: #898781;
       --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
       --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
-      --hit-acc: #f0913f; --weak-acc: #6e4220; --bar-acc: #b8773f; --btn-don: #32b98c; --btn-acc: #f0913f;
+      --hit-acc: #f0913f; --weak-acc: #6e4220; --bar-acc: #b8773f; --btn-don: #32b98c; --btn-acc: #f0913f; --btn-ph: #b5b2a7; --ph: #8f8c82;
       --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
       --link: #6b6a66; --band: rgba(255,255,255,0.045);
       --accent: #3987e5; --pin: #e66767;
@@ -36,7 +36,7 @@
     --text: #ffffff; --text2: #c3c2b7; --muted: #898781;
     --hairline: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
     --hit: #32b98c; --weak: #2c6452; --empty: rgba(255,255,255,0.06);
-    --hit-acc: #f0913f; --weak-acc: #6e4220; --bar-acc: #b8773f; --btn-don: #32b98c; --btn-acc: #f0913f;
+    --hit-acc: #f0913f; --weak-acc: #6e4220; --bar-acc: #b8773f; --btn-don: #32b98c; --btn-acc: #f0913f; --btn-ph: #b5b2a7; --ph: #8f8c82;
     --bar: #4f9b80; --zero: #55534e; --cross: rgba(57,135,229,0.22);
     --link: #6b6a66; --band: rgba(255,255,255,0.045);
     --accent: #3987e5; --pin: #e66767;
@@ -89,6 +89,7 @@
   #role-toggles button[data-role="acceptor"] { --role-btn: var(--btn-acc); }
   #role-toggles button[data-role="donor_category"] { --role-btn: var(--btn-don); }
   #role-toggles button[data-role="acceptor_category"] { --role-btn: var(--btn-acc); }
+  #role-toggles button[data-role="phenotype"] { --role-btn: var(--btn-ph); }
   #role-toggles button { position: relative; font-weight: 600; color: var(--role-btn); border-color: var(--role-btn); }
   #role-toggles button:first-child { z-index: 1; }
   #role-toggles button[aria-pressed="true"] { background: var(--role-btn); border-color: var(--role-btn); color: var(--panel); }
@@ -152,6 +153,13 @@
   .tooltip .kc i.sa { background: var(--hit-acc); }
   .tooltip .kc i.wa { background: var(--weak-acc); }
   .tooltip .hint { margin-top: 5px; }
+  .tooltip .kc i.ph-faint { opacity: .45; }
+  .tooltip .evidence { color: var(--text2); font-size: 10.5px; white-space: normal; overflow-wrap: anywhere; }
+  .tooltip .scale { height: 8px; border-radius: 2px; margin: 4px 0 1px; box-shadow: 0 0 0 1px var(--border) inset; }
+  .tooltip .scale-ticks { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .tooltip .legend-rows { display: grid; grid-template-columns: max-content 1fr max-content; gap: 1px 6px; margin-top: 4px; align-items: center; }
+  .tooltip .legend-rows i { width: 9px; height: 9px; border-radius: 2px; }
+  .tooltip .legend-rows .n { margin: 0; text-align: right; }
   .tooltip .links { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 6px; padding-top: 5px; border-top: 1px solid var(--hairline); }
   .tooltip a { color: var(--accent); text-decoration: none; }
   .tooltip a:hover { text-decoration: underline; }
@@ -176,6 +184,7 @@
     <div class="pop" id="about-box" role="dialog" hidden>
       <p data-i18n="aboutMatrix"></p>
       <p id="about-roles" data-i18n="aboutRoles"></p>
+      <p id="about-phenotype" data-i18n="aboutPhenotype"></p>
       <p id="about-categories" data-i18n="aboutCategories"></p>
       <p data-i18n="aboutAggregate"></p>
       <p id="about-tree" data-i18n="aboutTree"></p>
@@ -249,7 +258,7 @@
   var DATA = JSON.parse(document.getElementById('report-data').textContent);
 
   // ---- electron donor / acceptor categories (optional) -----------------------------
-  // From the curated database (genome_electron_categories.tsv). Each category becomes a column of a
+  // From phenotype_data.tsv (genome_electron_categories.tsv). Each category becomes a column of a
   // "<role>_category" section placed left of that role's KO section. Colours are the user's choice;
   // they are matched by keyword so that renamed or new categories still get a sensible colour.
   var CATEGORY_PALETTE = {             // [light, dark]
@@ -303,6 +312,131 @@
       DATA.columns = ordered.concat(DATA.columns.filter(function (c) { return c.role !== 'donor' && c.role !== 'acceptor'; }));
     })();
   }
+
+  // ---- phenotypes (optional) ----------------------------------------------------------
+  // From phenotype_data.tsv (genome_phenotype.tsv): one column per trait in a "phenotype" section left of
+  // the donor categories. Values are per species (strain differences are not represented). Oxygen and
+  // habitat have one colour per class; temperature and pH follow a continuous scale (a range uses its
+  // midpoint). Values whose status is not "verified" are drawn faint. c.cat marks every non-KO column,
+  // c.ph the phenotype ones.
+  var PH = DATA.phenotype && DATA.genomes.some(function (g) { return g.ph; }) ? DATA.phenotype : null;
+  var PH_FAINT = 0.45;
+  // [class key, light, dark, label]; order = legend and sort order
+  var OXYGEN_CLASSES = [
+    ['obligate aerobic', '#1d4e89', '#4f86c9', t('oxyObligateAerobic')],
+    ['aerobic', '#4a8fc7', '#6aa8dc', t('oxyAerobic')],
+    ['microaerophilic', '#9cc9c1', '#9cc9c1', t('oxyMicroaerophilic')],
+    ['facultative anaerobic', '#c9b99a', '#c9b99a', t('oxyFacultativeAnaerobic')],
+    ['anaerobic', '#c7654f', '#d77a63', t('oxyAnaerobic')],
+    ['obligate anaerobic', '#7c2a22', '#b04a3e', t('oxyObligateAnaerobic')]
+  ];
+  var HABITAT_CLASSES = [
+    ['vent', '#8e1b3a', '#c2415f', t('habVent')],
+    ['hotspring', '#e0602c', '#ec7a48', t('habHotspring')],
+    ['geothermal_soil', '#b8742a', '#cf8d45', t('habGeothermalSoil')],
+    ['marine', '#1f5fa8', '#4b87d0', t('habMarine')],
+    ['salt_marsh', '#4f8fb0', '#6eaccb', t('habSaltMarsh')],
+    ['marine_subsurface', '#27406b', '#5a78ab', t('habMarineSubsurface')],
+    ['saline', '#9b6fc2', '#b390d6', t('habSaline')],
+    ['freshwater', '#38a8d6', '#5cc0e8', t('habFreshwater')],
+    ['polluted_freshwater', '#6b8f9e', '#88a9b7', t('habPollutedFreshwater')],
+    ['subsurface', '#5b4a3a', '#8f7a64', t('habSubsurface')],
+    ['mine', '#7a7a2a', '#a3a347', t('habMine')],
+    ['engineered', '#8a8f99', '#a2a7b1', t('habEngineered')],
+    ['livestock_waste', '#a0784f', '#bb946b', t('habLivestockWaste')],
+    ['soil', '#6a9a3a', '#86b855', t('habSoil')],
+    ['host', '#d6719b', '#e48db1', t('habHost')],
+    ['sediment', '#a89a7a', '#b8ab8c', t('habSediment')],
+    ['water', '#9cc3d6', '#9cc3d6', t('habWater')],
+    ['other', '#c4c2ba', '#77756e', t('habOther')]
+  ];
+  // [value, colour]: temperature 0-110 °C blue -> yellow -> red, pH 1-11 red -> grey -> blue
+  var TEMP_STOPS = [[0, '#2f6db5'], [24.2, '#7fb8d8'], [39.6, '#f2efc4'], [55, '#f6b25b'], [74.8, '#e2572f'], [94.6, '#a3161b'], [110, '#5c0a14']];
+  var PH_STOPS = [[1, '#a3161b'], [3, '#e2572f'], [5, '#f2c38a'], [7, '#e9ebe6'], [9, '#86b7d6'], [11, '#2c4f9e']];
+  var TRAITS = [
+    { key: 'oxygen', label: t('traitOxygen'), classes: OXYGEN_CLASSES },
+    { key: 'optimal_temperature', label: t('traitTemperature'), stops: TEMP_STOPS, unit: ' °C', ticks: ['0 °C', '55', '110 °C'] },
+    { key: 'optimal_pH', label: t('traitPh'), stops: PH_STOPS, unit: '', ticks: ['pH 1', '6', '11'] },
+    { key: 'habitat', label: t('traitHabitat'), classes: HABITAT_CLASSES, exportClass: true }
+  ];
+  var NT = TRAITS.length;
+  TRAITS.forEach(function (tr) {
+    if (!tr.classes) return;
+    tr.index = {};
+    tr.classes.forEach(function (cl, i) { tr.index[cl[0]] = i; });
+  });
+  var phHex = {};
+  function hexRgb(hex) {
+    if (!(hex in phHex)) phHex[hex] = [1, 3, 5].map(function (i) { return parseInt(hex.slice(i, i + 2), 16); });
+    return phHex[hex];
+  }
+  function scaleColor(stops, x) {
+    if (x <= stops[0][0]) return stops[0][1];
+    for (var i = 1; i < stops.length; i++) {
+      if (x > stops[i][0]) continue;
+      var f = (x - stops[i - 1][0]) / (stops[i][0] - stops[i - 1][0]);
+      var a = hexRgb(stops[i - 1][1]), b = hexRgb(stops[i][1]);
+      return 'rgb(' + a.map(function (v, j) { return Math.round(v + (b[j] - v) * f); }).join(',') + ')';
+    }
+    return stops[stops.length - 1][1];
+  }
+  // Colour of trait ti for value x (class index, or number).
+  function phColor(ti, x) {
+    var tr = TRAITS[ti];
+    return tr.classes ? tr.classes[x][DARK ? 2 : 1] : scaleColor(tr.stops, x);
+  }
+  // Payload entry of trait ti: [value, class, number, status, tier, source, evidence, url, other values].
+  function phEntry(genome, ti) {
+    if (!genome.ph) return null;
+    var i = PH.traits.indexOf(TRAITS[ti].key);
+    return i < 0 ? null : genome.ph[i];
+  }
+  // phVal[genome * NT + trait]: class index or number (NaN = no value); phOk: 1 when "verified".
+  var phVal = new Float64Array(PH ? DATA.genomes.length * NT : 0).fill(NaN);
+  var phOk = new Uint8Array(phVal.length);
+  if (PH) {
+    DATA.genomes.forEach(function (g, gi) {
+      TRAITS.forEach(function (tr, ti) {
+        var e = phEntry(g, ti);
+        if (!e) return;
+        var x = tr.classes ? tr.index[e[1]] : e[2];
+        if (tr.classes && x == null) x = tr.index.other;
+        if (x == null) return;
+        phVal[gi * NT + ti] = x;
+        phOk[gi * NT + ti] = e[3] === 'verified' ? 1 : 0;
+      });
+    });
+    DATA.columns = TRAITS.map(function (tr, ti) {
+      return { cat: true, ph: true, ti: ti, role: 'phenotype', group: t('groupPhenotype'), ko: 'ph:' + tr.key,
+        source: 'ph:' + tr.key, gene: tr.label, substrate: '', shared: false };
+    }).concat(DATA.columns);
+  }
+  // Summary of trait ti over the genomes order[i0..i1): the most frequent class or the mean, and how many have a value.
+  function phSummary(ti, order, i0, i1) {
+    var n = 0, sum = 0, counts = {}, best = -1, x;
+    for (var i = i0; i < i1; i++) {
+      x = phVal[order[i] * NT + ti];
+      if (x !== x) continue;
+      n++;
+      if (TRAITS[ti].classes) {
+        counts[x] = (counts[x] || 0) + 1;
+        if (best < 0 || counts[x] > counts[best]) best = x;
+      } else {
+        sum += x;
+      }
+    }
+    return { n: n, x: TRAITS[ti].classes ? best : sum / n, counts: counts };
+  }
+  function phValueText(ti, e) {
+    var tr = TRAITS[ti];
+    if (tr.classes) {
+      var label = tr.classes[tr.index[e[1]] != null ? tr.index[e[1]] : tr.index.other][3];
+      return ti === 0 ? label + (e[0].toLowerCase() !== e[1] ? ' (' + e[0] + ')' : '') : e[0] + ' — ' + label;
+    }
+    var text = (tr.unit ? e[0] + tr.unit : 'pH ' + e[0]);
+    return String(e[2]) !== e[0] ? text + ' ' + t('phMidpoint', { v: e[2] }) : text;
+  }
+  function phNumber(ti, x) { return TRAITS[ti].unit ? (Math.round(x * 10) / 10) + TRAITS[ti].unit : 'pH ' + (Math.round(x * 10) / 10); }
 
   // ---- geometry ----------------------------------------------------------------
   var CELL = 10, CELL_GAP = 2, GROUP_GAP = 8, PAD = 10;
@@ -361,17 +495,23 @@
       levels[gi * K + k] = g.hits[ko].some(function (h) { return h[4]; }) ? 2 : 1;
     });
   });
-  // Category columns: 2 = consensus "used", 1 = only CONFLICTING, 0 = absent or not_used;
-  // the "no data" column is 2 for genomes the database does not list.
+  // Category columns: 2 = consensus "used", 1 = only CONFLICTING, 0 = absent, not_used or audited ERROR only;
+  // the "no data" column is 2 for genomes phenotype_data.tsv does not list.
+  // Phenotype columns: 2 = verified value, 1 = other value, 0 = none (their colour comes from phVal).
   var isCatK = new Uint8Array(K);
   var KO_COUNT = unique(DATA.columns.filter(function (c) { return !c.cat; }).map(function (c) { return c.ko; })).length;
+  DATA.columns.forEach(function (c) {
+    if (!c.cat) return;
+    isCatK[c.k] = 1;
+    if (!c.ph) return;
+    for (var gi = 0; gi < N; gi++) {
+      var x = phVal[gi * NT + c.ti];
+      if (x === x) levels[gi * K + c.k] = phOk[gi * NT + c.ti] ? 2 : 1;
+    }
+  });
   if (EL) {
     var catK = {};
-    DATA.columns.forEach(function (c) {
-      if (!c.cat) return;
-      isCatK[c.k] = 1;
-      catK[c.catRole + ':' + c.catIndex] = c.k;
-    });
+    DATA.columns.forEach(function (c) { if (c.cat && !c.ph) catK[c.catRole + ':' + c.catIndex] = c.k; });
     DATA.genomes.forEach(function (g, gi) {
       if (!g.el) {
         levels[gi * K + catK['donor:-1']] = 2;
@@ -389,7 +529,8 @@
   var ROLES = unique(DATA.columns.map(function (c) { return c.role || ''; }));
   function roleLabel(role) {
     return role === 'donor' ? t('roleDonor') : role === 'acceptor' ? t('roleAcceptor')
-      : role === 'donor_category' ? t('roleDonorCategory') : role === 'acceptor_category' ? t('roleAcceptorCategory') : t('roleOther');
+      : role === 'donor_category' ? t('roleDonorCategory') : role === 'acceptor_category' ? t('roleAcceptorCategory')
+      : role === 'phenotype' ? t('rolePhenotype') : t('roleOther');
   }
 
   // ---- taxonomy tree (optional) --------------------------------------------------
@@ -443,7 +584,7 @@
   }
 
   var searchText = DATA.genomes.map(function (g) {
-    var parts = [g.id, g.org || ''];
+    var parts = [g.id, g.org || '', g.phOrg || ''];
     if (HAS_TREE) for (var m = g.tax; m >= 0; m = tParent[m]) if (tRank[m] >= 1) parts.push(TAX.nodes[m][0]);
     return parts.join(' ').toLowerCase();
   });
@@ -507,6 +648,15 @@
       order.sort(function (a, b) { return taxPos[a] - taxPos[b]; });
     } else if (state.sortKey === 'count') {
       order.sort(function (a, b) { return dir * (counts[b] - counts[a]) || a - b; });
+    } else if (state.sortKey.indexOf('ko:ph:') === 0) {
+      // By value (class order, or number); genomes without a value last in both directions.
+      var ti = 0;
+      while (ti < NT - 1 && 'ko:ph:' + TRAITS[ti].key !== state.sortKey) ti++;
+      order.sort(function (a, b) {
+        var va = phVal[a * NT + ti], vb = phVal[b * NT + ti];
+        if (va !== va || vb !== vb) return (va !== va) - (vb !== vb) || a - b;
+        return dir * (va - vb) || a - b;
+      });
     } else if (state.sortKey.indexOf('ko:') === 0) {
       var k = kIndex[state.sortKey.slice(3)];
       order.sort(function (a, b) { return dir * (lv(b, k) - lv(a, k)) || a - b; });
@@ -697,6 +847,14 @@
         r = binRange(g, p);
         var size = r[1] - r[0];
         for (ci = 0; ci < cols.length; ci++) {
+          if (cols[ci].ph) {
+            var sm = phSummary(cols[ci].ti, order, r[0], r[1]);
+            if (!sm.n) continue;
+            ctx.globalAlpha = 0.18 + 0.82 * sm.n / size;
+            ctx.fillStyle = phColor(cols[ci].ti, sm.x);
+            ctx.fillRect(xOff + cols[ci].x, p, CELL, 1);
+            continue;
+          }
           var s = 0, w = 0, k = cols[ci].k;
           for (i = r[0]; i < r[1]; i++) {
             var v = lv(order[i], k);
@@ -715,6 +873,16 @@
       cols.forEach(function (c) {
         var x = xOff + c.x;
         if (x + CELL < g.fixedW || x > g.W) return;
+        if (c.ph) {
+          for (var i3 = vr[0]; i3 < vr[1]; i3++) {
+            var j = order[i3] * NT + c.ti, xv = phVal[j];
+            if (xv !== xv) continue;
+            ctx.globalAlpha = phOk[j] ? 1 : PH_FAINT;
+            ctx.fillStyle = phColor(c.ti, xv);
+            ctx.fillRect(x, Math.round(i3 * g.rowPx - g.st), CELL, h);
+          }
+          return;
+        }
         [2, 1].forEach(function (pass) {
           ctx.fillStyle = cellColor(c, pass);
           ctx.globalAlpha = c.cat && pass === 1 ? 0.4 : 1;   // CONFLICTING-only categories are drawn faint
@@ -771,6 +939,7 @@
 
   // Fill colour of a present cell (pass 2 = full, 1 = weak).
   function cellColor(c, pass) {
+    if (c.ph) return css('--ph');
     if (c.cat) return c.color[DARK ? 1 : 0];
     if (c.role === 'acceptor') return css(pass === 2 ? '--hit-acc' : '--weak-acc');
     return css(pass === 2 ? '--hit' : '--weak');
@@ -987,7 +1156,7 @@
     });
 
     // KO identifiers, written vertically. Category columns show the category name instead, truncated to
-    // fit the group + gene + KO rows (their sections draw no group / gene labels); "no DB" keeps its short label.
+    // fit the group + gene + KO rows (their sections draw no group / gene labels); "no data" keeps its short label.
     ctx.textBaseline = 'middle';
     var CAT_LABEL_H = HEAD_GROUP + HEAD_GENE + HEAD_KO - 8;
     cols.forEach(function (c, i) {
@@ -1136,17 +1305,68 @@
     });
   }
 
+  var CONSENSUS = { used: t('consUsed'), CONFLICTING: t('consConflicting'), not_used: t('consNotUsed'), audit_error: t('consAuditError') };
   function categoryRecords(genome, c) {
     if (c.nodata) return '<div class="sub">' + esc(genome.el ? t('catInDb') : t('catNoDataFull')) + '</div>';
     var records = (genome.el || []).filter(function (e) { return e[0] === c.catRole && e[1] === c.catIndex; });
     if (!records.length) return '<div class="sub">' + esc(genome.el ? t('catAbsent') : t('catNoDataFull')) + '</div>';
     return records.map(function (e) {
       return '<div class="hit' + (e[3] === 'used' ? '' : ' below') + '">'
-        + esc(t('catRecord', { compound: e[2], consensus: e[3], grade: e[4] })) + '</div>';
+        + esc(t('catRecord', { compound: e[2], consensus: CONSENSUS[e[3]] || e[3] })) + '</div>'
+        + (e[4] ? '<div class="evidence">' + esc(e[4]) + '</div>' : '');
+    }).join('') + '<div class="hint">' + esc(t('phSpeciesNote')) + '</div>';
+  }
+
+  // Phenotype value of one genome: value, status / source / evidence, and the species-level note.
+  function phRecord(gi, c) {
+    var genome = DATA.genomes[gi];
+    if (!genome.ph) return '<div class="sub">' + esc(t('phNoData')) + '</div>';
+    var e = phEntry(genome, c.ti), x = phVal[gi * NT + c.ti];
+    if (!e || x !== x) return '<div class="sub">' + esc(t('phNoValue')) + '</div>';
+    var html = '<div><span class="kc cc"><i' + (e[3] === 'verified' ? '' : ' class="ph-faint"') + ' style="background:'
+      + phColor(c.ti, x) + '"></i><b>' + esc(phValueText(c.ti, e)) + '</b></span></div><dl>';
+    [['phStatus', e[3]], ['phTier', e[4]], ['phSource', e[5]], ['phOtherValues', e[8]]].forEach(function (row) {
+      if (row[1]) html += '<dt>' + esc(t(row[0])) + '</dt><dd>' + esc(row[1]) + '</dd>';
+    });
+    html += '</dl>';
+    if (e[6]) html += '<div class="evidence">' + esc(e[6]) + '</div>';
+    return html + '<div class="hint">' + esc(t('phSpeciesNote')) + '</div>';
+  }
+
+  // Compact phenotype summary for the genome tooltip (one chip per trait with a value).
+  function phenotypeRow(gi) {
+    if (!PH || !DATA.genomes[gi].ph) return [];
+    var chips = TRAITS.map(function (tr, ti) {
+      var x = phVal[gi * NT + ti];
+      if (x !== x) return '';
+      var text = tr.classes ? tr.classes[x][3] : phNumber(ti, x);
+      return '<span class="kc cc"><i' + (phOk[gi * NT + ti] ? '' : ' class="ph-faint"') + ' style="background:' + phColor(ti, x) + '"></i>'
+        + esc(text) + '</span>';
     }).join('');
+    return ['<dt>' + esc(t('rolePhenotype')) + '</dt><dd>' + (chips || '<span class="sub">' + esc(t('phNoValue')) + '</span>') + '</dd>'];
+  }
+
+  // Legend of a phenotype column with counts over the listed genomes (the column heading tooltip).
+  function phLegend(c) {
+    var tr = TRAITS[c.ti], sm = phSummary(c.ti, view.order, 0, view.order.length), html;
+    if (tr.classes) {
+      html = '<div class="legend-rows">' + tr.classes.map(function (cl, i) {
+        return '<i style="background:' + cl[DARK ? 2 : 1] + '"></i><span>' + esc(cl[3]) + '</span><span class="n">' + fmt(sm.counts[i] || 0) + '</span>';
+      }).join('') + '</div>';
+    } else {
+      var lo = tr.stops[0][0], hi = tr.stops[tr.stops.length - 1][0];
+      html = '<div class="scale" style="background:linear-gradient(to right,' + tr.stops.map(function (st) {
+        return st[1] + ' ' + ((st[0] - lo) / (hi - lo) * 100).toFixed(1) + '%';
+      }).join(',') + ')"></div><div class="scale-ticks">' + tr.ticks.map(function (tick) {
+        return '<span>' + esc(tick) + '</span>';
+      }).join('') + '</div>';
+      if (sm.n) html += '<div class="sub">' + esc(t('phMean', { v: phNumber(c.ti, sm.x) })) + '</div>';
+    }
+    return html;
   }
 
   function columnDetails(c) {
+    if (c.ph) return '<div><b>' + esc(c.gene) + '</b></div><div class="sub">' + esc(roleLabel(c.role)) + '</div>';
     if (c.cat) return '<div><b>' + esc(c.gene) + '</b></div><div class="sub">' + esc(roleLabel(c.role)) + '</div>';
     return '<div><b class="mono">' + esc(c.ko) + '</b> ' + esc(c.gene) + '</div>'
       + '<div class="sub">' + esc(c.group) + ' · ' + esc(t('tipSubstrate', { v: c.substrate })) + '</div>';
@@ -1165,19 +1385,22 @@
     var html = '<div class="head"><b class="mono">' + esc(genome.id) + '</b><span class="n">'
       + esc(t('tipKoCount', { n: view.counts[gi], total: view.visK.length })) + '</span></div>';
     if (genome.org) html += '<div>' + esc(genome.org) + '</div>';
+    if (genome.phOrg && genome.phOrg !== genome.org) html += '<div class="sub">' + esc(t('tipPhOrg', { v: genome.phOrg })) + '</div>';
     if (HAS_TREE) {
       html += '<div class="sub">' + esc(lineageText(genome.tax, 1, LEAF_DEPTH - 2))
         + (genome.taxid ? ' · ' + esc(t('tipTaxid', { v: genome.taxid })) : '') + '</div>';
     }
     var c = col >= 0 ? cols[col] : null;
-    if (c && c.cat) {
+    if (c && c.ph) {
+      html += '<div class="focus">' + columnDetails(c) + phRecord(gi, c) + '</div>';
+    } else if (c && c.cat) {
       html += '<div class="focus">' + columnDetails(c) + categoryRecords(genome, c) + '</div>';
     } else if (c) {
       var hits = (genome.hits[c.ko] || []).filter(function (h) { return !state.sigOnly || h[4]; });
       html += '<div class="focus">' + columnDetails(c)
         + (hits.length ? hitLines(hits) : '<div class="sub">' + esc(t('tipAbsent')) + '</div>') + '</div>';
     }
-    var byGroup = categoryRows(genome);
+    var byGroup = phenotypeRow(gi).concat(categoryRows(genome));
     runs(cols, function (x) { return x.group; }).forEach(function (r) {
       var seen = {}, chips = [];
       for (var i = r.start; i <= r.end; i++) {
@@ -1194,6 +1417,8 @@
       html += '<div class="links">' + link('https://www.ncbi.nlm.nih.gov/datasets/genome/' + encodeURIComponent(genome.id) + '/', t('linkGenome'));
       if (genome.taxid) html += link(TAXON_URL + encodeURIComponent(genome.taxid), t('linkTaxonomy'));
       if (c && !c.cat) html += link('https://www.kegg.jp/entry/' + encodeURIComponent(c.ko), t('linkKo', { ko: c.ko }));
+      var phUrl = c && c.ph && phEntry(genome, c.ti) ? phEntry(genome, c.ti)[7] : '';
+      if (/^https?:\/\//.test(phUrl)) html += link(phUrl.split(/[\s;]+/)[0], t('linkPhSource'));
       html += '</div>';
     } else {
       html += '<div class="hint">' + esc(t('tipPinHint')) + '</div>';
@@ -1226,7 +1451,12 @@
       + (r[1] - r[0] > 1 ? ' … ' + esc(DATA.genomes[order[r[1] - 1]].id) : '') + '</b>'
       + '<span class="n">' + esc(t('tipBinGenomes', { n: fmt(r[1] - r[0]) })) + '</span></div>';
     var c = col >= 0 ? view.cols[col] : null;
-    if (c) {
+    if (c && c.ph) {
+      var sm = phSummary(c.ti, order, r[0], r[1]);
+      html += '<div class="focus">' + columnDetails(c) + '<div>' + esc(t('tipBinKo', { n: fmt(sm.n), total: fmt(r[1] - r[0]) })) + '</div>'
+        + (sm.n ? '<div>' + esc(t(TRAITS[c.ti].classes ? 'phMode' : 'phMean', {
+          v: TRAITS[c.ti].classes ? TRAITS[c.ti].classes[sm.x][3] : phNumber(c.ti, sm.x) })) + '</div>' : '') + '</div>';
+    } else if (c) {
       var m = 0;
       for (var i = r[0]; i < r[1]; i++) if (lv(order[i], c.k)) m++;
       html += '<div class="focus">' + columnDetails(c)
@@ -1237,6 +1467,12 @@
 
   function columnTip(col) {
     var c = view.cols[col];
+    if (c.ph) {
+      return columnDetails(c) + phLegend(c)
+        + '<div class="focus">' + esc(t('tipPhCount', { n: fmt(view.colCounts[col]), total: fmt(view.order.length) })) + '</div>'
+        + '<div class="sub">' + esc(t('phFaintNote')) + '</div>'
+        + '<div class="hint">' + esc(t('phSpeciesNote')) + ' ' + esc(t('phSortHint')) + '</div>';
+    }
     if (c.cat) {
       return columnDetails(c)
         + '<div class="focus">' + esc(t('tipCategoryCount', { n: fmt(view.colCounts[col]), total: fmt(view.order.length) })) + '</div>'
@@ -1531,9 +1767,11 @@
     var cols = view.cols;
     var clean = function (s) { return String(s == null ? '' : s).replace(/[\t\r\n]+/g, ' '); };
     var taxHeader = HAS_TREE ? ['organism_name'].concat(TAX.ranks) : [];
-    var lines = [['genome_id'].concat(taxHeader, ['n_kos'], cols.map(function (c) {
-      return c.cat ? roleLabel(c.role) + ': ' + clean(c.gene) : c.ko + ' ' + shortName(c.gene);
-    })).join('\t')];
+    // Phenotype columns export the values as written (habitat also its class); other columns 1 / 0.
+    var lines = [['genome_id'].concat(taxHeader, ['n_kos'], [].concat.apply([], cols.map(function (c) {
+      if (c.ph) return TRAITS[c.ti].exportClass ? [TRAITS[c.ti].key, TRAITS[c.ti].key + '_class'] : [TRAITS[c.ti].key];
+      return [c.cat ? roleLabel(c.role) + ': ' + clean(c.gene) : c.ko + ' ' + shortName(c.gene)];
+    }))).join('\t')];
     view.order.forEach(function (gi) {
       var genome = DATA.genomes[gi], taxCols = [];
       if (HAS_TREE) {
@@ -1543,7 +1781,12 @@
           taxCols.push(m >= 0 && tRank[m] === r ? clean(TAX.nodes[m][0]) : '');
         }
       }
-      lines.push([genome.id].concat(taxCols, [view.counts[gi]], cols.map(function (c) { return lv(gi, c.k) ? 1 : 0; })).join('\t'));
+      lines.push([genome.id].concat(taxCols, [view.counts[gi]], [].concat.apply([], cols.map(function (c) {
+        if (!c.ph) return [lv(gi, c.k) ? 1 : 0];
+        var e = phEntry(genome, c.ti), x = phVal[gi * NT + c.ti];
+        var value = e && x === x ? clean(e[0]) : '';
+        return TRAITS[c.ti].exportClass ? [value, value ? e[1] || 'other' : ''] : [value];
+      }))).join('\t'));
     });
     // BOM so that Excel opens the file as UTF-8.
     var url = URL.createObjectURL(new Blob(['﻿' + lines.join('\n') + '\n'], { type: 'text/tab-separated-values;charset=utf-8' }));
@@ -1606,6 +1849,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('.role-only'), function (node) { node.hidden = !HAS_ROLES; });
     $('about-roles').hidden = !HAS_ROLES;
     $('about-categories').hidden = !EL;
+    $('about-phenotype').hidden = !PH;
     $('about-tree').hidden = !HAS_TREE;
     $('stats').textContent = t('statSummary', {
       analysed: fmt(N + DATA.genomesWithoutHits), shown: fmt(N), hidden: fmt(DATA.genomesWithoutHits), kos: KO_COUNT

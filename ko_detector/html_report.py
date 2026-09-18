@@ -8,8 +8,8 @@ from collections import Counter
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from .electron_db import ElectronRecord
 from .models import GenomeResult, KoEntry
+from .phenotype import OXYGEN_LEVELS, TRAITS, ElectronRecord, GenomePhenotype
 from .taxonomy import TAXONOMY_RANKS, GenomeTaxonomy
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -54,8 +54,8 @@ def _attach_taxonomy(genomes: List[Dict[str, object]], taxonomy: Dict[str, Genom
 def _attach_electron(genomes: List[Dict[str, object]], electron: Dict[str, List[ElectronRecord]]) -> Dict[str, object]:
     """Categories seen among the listed genomes, and ``el`` records on each genome found in the database.
 
-    ``el`` entries are ``[role, category index, compound, consensus, confidence]``; a genome without ``el``
-    is not in the database at all.
+    ``el`` entries are ``[role, category index, compound, consensus, source]``; a genome without ``el``
+    is not in phenotype_data.tsv at all.
     """
     categories: Dict[str, List[str]] = {"donor": [], "acceptor": []}
     index: Dict[Tuple[str, str], int] = {}
@@ -69,9 +69,26 @@ def _attach_electron(genomes: List[Dict[str, object]], electron: Dict[str, List[
             if key not in index:
                 index[key] = len(categories[record.role])
                 categories[record.role].append(record.category)
-            entries.append([record.role, index[key], record.compound, record.consensus, record.confidence])
+            entries.append([record.role, index[key], record.compound, record.consensus, record.source])
         genome["el"] = entries
     return {"categories": categories}
+
+
+def _attach_phenotype(genomes: List[Dict[str, object]], phenotypes: Dict[str, GenomePhenotype]) -> Dict[str, object]:
+    """``ph`` on each genome found in phenotype_data.tsv: one entry per trait (``TRAITS`` order), null when empty,
+    else ``[value, class, number, status, tier, source, evidence, url, other values]``; ``phOrg`` names the organism(s).
+    """
+    for genome in genomes:
+        phenotype = phenotypes.get(str(genome["id"]))
+        if phenotype is None:
+            continue
+        traits = [phenotype.traits.get(trait) for trait in TRAITS]
+        genome["ph"] = [
+            None if v is None else [v.value, v.klass, v.number, v.status, v.tier, v.source, v.evidence, v.url, v.other_values]
+            for v in traits
+        ]
+        genome["phOrg"] = "; ".join(phenotype.organisms)
+    return {"traits": list(TRAITS), "oxygen": list(OXYGEN_LEVELS)}
 
 
 def build_payload(
@@ -82,6 +99,7 @@ def build_payload(
     run_info: Optional[Dict[str, object]] = None,
     taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
     electron: Optional[Dict[str, List[ElectronRecord]]] = None,
+    phenotypes: Optional[Dict[str, GenomePhenotype]] = None,
 ) -> Dict[str, object]:
     run_info = run_info or {}
     messages = load_messages(lang)
@@ -143,6 +161,7 @@ def build_payload(
         "undetectable": undetectable,
         "taxonomy": _attach_taxonomy(genomes, taxonomy) if taxonomy is not None else None,
         "electron": _attach_electron(genomes, electron) if electron is not None else None,
+        "phenotype": _attach_phenotype(genomes, phenotypes) if phenotypes is not None else None,
     }
 
 
@@ -171,11 +190,13 @@ def write_reports(
     titles: Optional[Dict[str, str]] = None,
     taxonomy: Optional[Dict[str, GenomeTaxonomy]] = None,
     electron: Optional[Dict[str, List[ElectronRecord]]] = None,
+    phenotypes: Optional[Dict[str, GenomePhenotype]] = None,
 ) -> Dict[str, Path]:
     """Write one report per language; ``titles`` overrides the default title per language."""
     titles = titles or {}
     paths: Dict[str, Path] = {}
     for lang, filename in REPORT_FILES.items():
         paths[lang] = output_dir / filename
-        write_html(paths[lang], build_payload(entries, results, lang, titles.get(lang), run_info, taxonomy, electron))
+        payload = build_payload(entries, results, lang, titles.get(lang), run_info, taxonomy, electron, phenotypes)
+        write_html(paths[lang], payload)
     return paths

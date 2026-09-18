@@ -112,8 +112,9 @@ header does not match its role (e.g. an acceptor table saved under the donor fil
 | `--no-html` | do not write the HTML reports |
 | `--taxonomy-dir` | NCBI taxonomy for the tree (default `data/taxonomy` when present) |
 | `--no-taxonomy` | do not resolve lineages; reports have no tree |
-| `--electron-db` | electron donor / acceptor database for the category columns (default `data/electron/electron_donor_acceptor_DATABASE_with_genome.tsv` when present) |
-| `--no-electron-db` | reports without category columns |
+| `--phenotype` | `phenotype_data.tsv` for the phenotype and donor / acceptor category columns (default `data/electron/phenotype_data.tsv` when present) |
+| `--phenotype-tables` | directory with the tables that turn phenotype values into categories (default `config`) |
+| `--no-phenotype` | reports without phenotype / category columns |
 | `--title` / `--title-en` | title of the Japanese / English report |
 | `-v, --verbose` | show progress |
 
@@ -128,8 +129,9 @@ When finished, the number of genomes carrying each KO is printed to standard out
 | `-o, --output-dir` | where to write the reports (default `<results-dir>`) |
 | `--taxonomy-dir` | read lineages from this taxonomy directory (default: `<results-dir>/genome_taxonomy.tsv`, else `data/taxonomy` when present) |
 | `--no-taxonomy` | reports without the tree |
-| `--electron-db` | read categories from this database (default: `<results-dir>/genome_electron_categories.tsv`, else the default database when present) |
-| `--no-electron-db` | reports without category columns |
+| `--phenotype` | read phenotypes from this file (default: `<results-dir>/genome_phenotype.tsv` + `genome_electron_categories.tsv`, else `data/electron/phenotype_data.tsv` when present) |
+| `--phenotype-tables` | as for `scan` |
+| `--no-phenotype` | reports without phenotype / category columns |
 | `--title` / `--title-en` | report titles |
 
 ## Output
@@ -141,7 +143,8 @@ When finished, the number of genomes carrying each KO is printed to standard out
 | `genome_ko_matrix.tsv` | genome × KO gene counts (0 = absent); complexes get one column per KO |
 | `genome_ko_hits.tsv` | hit details (gene ID, score, threshold, E-value, significant, role) |
 | `genome_status.tsv` | per-genome status (`ok` / `multiple_files` / `no_file` / `error`) |
-| `genome_electron_categories.tsv` | donor / acceptor categories per genome from the electron database (role, category, compound, consensus, confidence); only when the database was available |
+| `genome_phenotype.tsv` | per genome and trait (oxygen, optimal_temperature, optimal_pH, habitat): value, class, number (midpoint of a range), status, source tier, source, evidence, URL, other values; only when phenotype data was available |
+| `genome_electron_categories.tsv` | donor / acceptor categories per genome from phenotype_data (role, category, compound, consensus, source); only when phenotype data was available |
 | `genome_taxonomy.tsv` | organism name and lineage (domain … species, with taxids) per genome; only when taxonomy was available |
 | `ko_config_used.tsv` | copy of the KO configurations used for the scan (donor and acceptor rows together) |
 | `run_info.json` | run date, input and options |
@@ -152,17 +155,24 @@ When finished, the number of genomes carrying each KO is printed to standard out
 **To view the report, `report.html` alone is enough.**
 To rebuild it with `render-html` you need `genome_status.tsv`, `genome_ko_hits.tsv` and `ko_config_used.tsv`
 (the last one is not needed if you pass a configuration with `-c`); `run_info.json` is optional.
-For the category columns it uses `genome_electron_categories.tsv` (or the database). For the taxonomy tree it also uses `genome_taxonomy.tsv`; without that file it reads `data/taxonomy` again, and without either the report has no tree.
+For the phenotype and category columns it uses `genome_phenotype.tsv` and `genome_electron_categories.tsv` (or `phenotype_data.tsv`). For the taxonomy tree it also uses `genome_taxonomy.tsv`; without that file it reads `data/taxonomy` again, and without either the report has no tree.
 
 ## Using the HTML report
 
-- **Donor / acceptor categories**: `donor_category` / `acceptor_category` from the electron donor / acceptor database
-  (`data/electron/…DATABASE_with_genome.tsv`, matched by `genome_id`) appear as "Donor categories" and "Acceptor categories"
-  sections left of the donor and acceptor KO sections, and collapse like them. Colours: donors — Hydrogen sky blue,
+- **Phenotype**: oxygen requirement, optimal temperature, optimal pH and habitat from `data/electron/phenotype_data.tsv`
+  (matched by `genome_accession`), in a "Phenotype" section at the far left. Values are species-level (strain differences are
+  not represented). Oxygen: obligate aerobic (dark blue) → aerobic → microaerophilic → facultative anaerobic → anaerobic →
+  obligate anaerobic (dark red); "facultative aerobic" counts as facultative anaerobic. Temperature 0–110 °C blue → yellow → red,
+  pH 1–11 red → grey → blue, coloured by value (a range by its midpoint). Habitat: one colour per environment class from
+  `config/habitat_classes.tsv`. Values whose status is not `verified` are faint. Hover a heading for the legend; click it to sort by value
+- **Donor / acceptor categories**: `electron_donors` / `electron_acceptors` from phenotype_data, sorted into categories by
+  `config/electron_compound_categories.tsv`, appear as "Donor categories" and "Acceptor categories" sections left of the
+  donor and acceptor KO sections, and collapse like them. Colours: donors — Hydrogen sky blue,
   Iron copper, Sulfur yellow, Carbon monoxide navy, Ammonia scarlet, Nitrite teal (Sulfate orange if it appears);
   acceptors — Aerobes sky blue, Nitrate-reducing teal, SRB orange, Sulfur-reducing yellow, FeRB copper,
-  Methanogens / Acetogens navy; Other grey. Strong = consensus `used`, faint = `CONFLICTING` only; `not_used` is shown only in
-  tooltips. "no DB" marks genomes the database does not list. Category columns are not counted in "KOs"
+  Methanogens / Acetogens navy; Other grey. Strong = reported as used, faint = conflicting reports; compounds only reported as
+  not used, or whose only sources were marked `audited ERROR`, are shown only in tooltips. "no data" marks genomes phenotype_data
+  does not list. Category columns are not counted in "KOs"
 - **Donor / acceptor sections**: columns are split into "Electron donors" (green) and "Electron acceptors" (orange). Collapse or expand
   each with the band at the top of the headings, the narrow strip of a collapsed section, or the toolbar buttons
   (green = donors, orange = acceptors; filled when expanded, outlined when collapsed).
@@ -182,7 +192,7 @@ For the category columns it uses `genome_electron_categories.tsv` (or the databa
   The tree is hidden while sorted this way; the "Taxonomy tree" button returns to taxonomic order
 - **Filters**: search by genome ID, organism or taxon name (e.g. `Aquificota`), functional groups (which columns are shown),
   excluding below-threshold hits. The tree is pruned to the remaining genomes
-- **⇩ TSV**: save the listed genomes × visible columns as 0/1 (with a BOM for Excel)
+- **⇩ TSV**: save the listed genomes × visible columns as 0/1 (phenotype columns as written, plus the habitat class; with a BOM for Excel)
 - "Items without KO", "Excluded genomes" and "About" at the top open on mouse-over
 
 Colours: dark green = present (above threshold), light green = below-threshold hits only, grey = absent.
@@ -197,6 +207,33 @@ Acceptor columns use the same scheme in orange. `※` marks a KO shared with ano
 - Reference items without a KEGG KO (11 donor and 11 acceptor items, such as cyc2, dsrEFH, mtrABC, qmoABC) cannot be detected ("Items without KO" in the report)
 - In the HTML report, donor and acceptor KOs are separate collapsible sections (a KO on both sheets appears in both)
 - `data/` is in `.gitignore`; results are not stored in the repository
+
+## Phenotype data
+
+`data/electron/phenotype_data.tsv` (one row per organism) is joined to genomes by `genome_accession`.
+Rows without an accession are skipped; a row whose cells slid into the wrong columns (currently org571) is skipped with a warning.
+Rows sharing an accession (GCF_001267435.1, two Moorella species) are merged: donors / acceptors are united, and for each trait
+the value with the better source tier is kept and the other is listed under "Other values".
+
+Three reviewed tables in `config/` turn the values into report categories:
+
+| File | Contents |
+| --- | --- |
+| `electron_compound_categories.tsv` | donor / acceptor token as written (e.g. `S2O3(2-) thiosulfate`) → category; tokens not listed become Other (with a warning) |
+| `phenotype_corrections.tsv` | tokens listed on the wrong side (e.g. H2 as an acceptor), moved to the other role for that genome |
+| `habitat_classes.tsv` | habitat value (HTML tags removed) → environment class; values not listed become Other (with a warning) |
+
+Habitat classes: hydrothermal vent, hot spring / geothermal, geothermal soil, marine, salt marsh / coastal saline,
+marine subsurface / offshore oil, saline lake / saline, freshwater, polluted / artificial freshwater, subsurface / oil field,
+mine / acid drainage, wastewater / engineered / culture, livestock waste / compost, soil / plant, host-associated,
+sediment / mud (unspecified), water (unspecified), other. Values matching several classes were given combined classes
+(geothermal soil, salt marsh, livestock waste, polluted freshwater, marine subsurface) or decided one by one.
+
+When phenotype_data gains new habitat values, draft rows for them and review before adding them to the table:
+
+```bash
+python3 scripts/draft_habitat_classes.py            # prints draft rows for values not yet in config/habitat_classes.tsv
+```
 
 ## Setup: NCBI taxonomy
 
@@ -231,13 +268,17 @@ electron_predictor/
 │   ├── chemolithoautotroph_donor_acceptor_donor_ko_reference.tsv      # survey results: donors (source)
 │   ├── chemolithoautotroph_donor_acceptor_acceptor_ko_reference.tsv   # survey results: acceptors (source)
 │   ├── donor_ko_config.tsv                                             # generated by scripts/build_configs.py
-│   └── acceptor_ko_config.tsv                                          # generated by scripts/build_configs.py
+│   ├── acceptor_ko_config.tsv                                          # generated by scripts/build_configs.py
+│   ├── electron_compound_categories.tsv                                # phenotype donor / acceptor token → category
+│   ├── phenotype_corrections.tsv                                       # tokens on the wrong side
+│   └── habitat_classes.tsv                                             # habitat value → environment class
 ├── ko_detector/
 │   ├── cli.py            # subcommands
 │   ├── reference.py      # reference parsing, configuration read/write
 │   ├── kofam.py          # GCF directory discovery, kolist_gene.tsv reading
 │   ├── summary.py        # per-KO counts
 │   ├── taxonomy.py       # genome lineages from NCBI taxonomy
+│   ├── phenotype.py      # phenotypes and donor / acceptor categories from phenotype_data.tsv
 │   ├── results_io.py     # result TSVs: write and read back
 │   ├── html_report.py    # HTML report generation
 │   ├── models.py
@@ -246,9 +287,11 @@ electron_predictor/
 │       └── messages/     # UI strings (ja.json / en.json)
 ├── scripts/
 │   ├── build_configs.py
+│   ├── draft_habitat_classes.py
 │   └── setup_taxonomy.py
 ├── tests/
 └── data/                 # in .gitignore
+    ├── electron/         # phenotype_data.tsv
     ├── examples/         # sample genome
     ├── results/          # scan output
     └── taxonomy/         # downloaded by setup_taxonomy.py

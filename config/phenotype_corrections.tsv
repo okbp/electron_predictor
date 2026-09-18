@@ -1,0 +1,8 @@
+# electron donor / acceptor tokens listed on the wrong side in phenotype_data.tsv (obvious role reversals)
+genome_accession	organism	token	from_role	to_role
+GCF_000015205.1	Pyrobaculum islandicum	H2 hydrogen	acceptor	donor
+GCF_000385565.1	Archaeoglobus sulfaticallidus	H2 hydrogen	acceptor	donor
+GCF_000266945.1	Desulfomonile tiedjei	H2 hydrogen	acceptor	donor
+GCF_001263415.1	Thermincola ferriacetica	H2 hydrogen	acceptor	donor
+GCF_024733845.1	Moorella sulfitireducens	CO carbon monoxide	acceptor	donor
+GCF_011764585.1	Sulfurimicrobium lacus	NO3- nitrate	donor	acceptor
